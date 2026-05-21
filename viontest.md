@@ -1,5 +1,7 @@
 # Viontest
 
+> **Experimental Project** — This is an experimental project under active development. Not recommended for production use.
+
 **Zero-dependency Rust testing framework** — expect, describe, arch, and a TUI test runner.
 
 Viontest is a standalone crate that provides a complete testing experience for Rust projects. It is the foundation of Viontin's testing capabilities, but works with **any** Rust project.

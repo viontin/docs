@@ -1,5 +1,7 @@
 # TailwindCSS Gem
 
+> **Experimental Project** — This is an experimental project under active development. Not recommended for production use.
+
 **Crate:** `viontin-gem-tailwind`  
 **Gem Name:** `tailwind`  
 **Kind:** `Theme`

@@ -1,5 +1,7 @@
 # Viontin
 
+> **Experimental Project** — This is an experimental project under active development. APIs are unstable, documentation is incomplete, and breaking changes may occur without notice. Not recommended for production use.
+
 **Zero to One, Scale-up Easily** — from prototype to production fleet on one platform.
 
 Viontin is a full-stack Rust application framework for building web services, CLI tools, terminal applications, and batch processing systems — all within a single, cohesive platform. It provides HTTP server, ORM, plugin system (Gems), background job processing, mail, notifications, caching, real-time TUI toolkit, architectural enforcement, and more.

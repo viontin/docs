@@ -1,5 +1,7 @@
 # Philosophy
 
+> **Experimental Project** — This is an experimental project under active development. APIs are unstable, documentation is incomplete, and breaking changes may occur without notice. Not recommended for production use.
+
 **Zero to One, Scale-up Easily** — from prototype to production fleet on one platform.
 
 ---

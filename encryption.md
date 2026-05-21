@@ -1,3 +1,5 @@
+> **Experimental Project** — This is an experimental project under active development. Not recommended for production use.
+
 # Encryption
 
 **Module:** `viontin_framework::encryption`  

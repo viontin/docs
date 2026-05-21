@@ -1,5 +1,7 @@
 # Getting Started
 
+> **Experimental Project** — This is an experimental project under active development. APIs are unstable, documentation is incomplete, and breaking changes may occur without notice. Not recommended for production use.
+
 ---
 
 This guide walks you through creating your first Viontin application — a web server, a CLI command, and a terminal prompt — in under five minutes.
