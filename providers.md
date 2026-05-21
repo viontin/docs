@@ -86,10 +86,25 @@ boot()
 ### Remove a Built-in Provider
 
 ```rust
-use viontin::boot;
+boot()
+    .withoutProvider("config")    // disable config loading
+    .withoutProvider("log")      // disable default logger
+    .withoutDefaultProviders()   // remove all 5 built-in providers
+```
+
+### DomainServiceProvider
+
+When the `domain` feature is enabled, you can use `DomainServiceProvider` to register domain definitions and listeners:
+
+```rust
+use viontin::domain::{DomainServiceProvider, DomainConfig, Domain};
 
 boot()
-    .without("config") // disable config loading
+    .provider(DomainServiceProvider::new()
+        .domain(DomainConfig::new(Domain::new("billing"))
+            .listener(InvoicePaidHandler)
+        )
+    )
 ```
 
 ---

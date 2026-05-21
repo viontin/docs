@@ -1,5 +1,3 @@
-> **Experimental Project** — This is an experimental project under active development. Not recommended for production use.
-
 # Application Boot
 
 **Module:** `viontin_framework::app`  
@@ -33,6 +31,7 @@ The `boot()` function creates a `Boot` builder holding:
 | `Router` | Empty | HTTP route table |
 | `WsRouter` | Empty | WebSocket route table |
 | `GemRegistry` | Empty | Plugin registry |
+| `MiddlewareChain` | Empty | Global middleware chain |
 
 ---
 
@@ -41,17 +40,52 @@ The `boot()` function creates a `Boot` builder holding:
 ### Provider Registration
 
 ```rust
-boot()
-    .provider(MyProvider)        // add or replace a provider
-    .run(|_| {});
+// Single
+boot().provider(MyProvider);
+
+// Group
+boot().withProviders(vec![
+    Box::new(DatabaseProvider),
+    Box::new(CacheProvider),
+]);
 ```
 
 ### CLI Commands
 
 ```rust
-boot()
-    .command(DeployCommand)
-    .run(|_| {});
+// Single
+boot().command(DeployCommand);
+
+// Group
+boot().withCommands(vec![
+    Box::new(BackupCmd),
+    Box::new(RestoreCmd),
+]);
+```
+
+### Gems
+
+```rust
+// Single
+boot().gem(MyGem);
+
+// Group
+boot().withGems(vec![
+    Box::new(viontin_gem_inertia::Inertia::new("views/app.html")),
+]);
+```
+
+### Middleware
+
+```rust
+// Single
+boot().middleware(LoggerMw);
+
+// Group
+boot().withMiddlewares(vec![
+    Box::new(LoggerMw),
+    Box::new(CorsMw),
+]);
 ```
 
 ### HTTP Routes
@@ -72,11 +106,18 @@ boot()
     .ws_with_config("/secure", config, SecureHandler)
 ```
 
-### Gems
+### Removing Defaults
 
 ```rust
 boot()
-    .gem(TailwindGem)
+    .withoutProvider("config")    // disable config loading
+    .withoutProvider("log")      // disable default logger
+    .withoutDefaultProviders()   // remove all 5 built-in providers
+    .withoutCommand("greet")     // remove a specific command
+    .withoutCommands()           // clear all commands
+    .withoutGem("tailwind")      // remove a specific gem
+    .withoutGems()               // clear all gems
+    .withoutMiddlewares()        // clear all middlewares
 ```
 
 ---
@@ -96,8 +137,9 @@ Flow:
 2. `app.run()` — register + boot all providers
 3. `kernel.run(&args)` — dispatch CLI command if args exist
 4. `router.extend_from_registry()` — merge route registry
-5. `ws_router.attach(router)` — merge WebSocket routes
-6. TCP server starts
+5. Global middlewares applied to router
+6. `ws_router.attach(router)` — merge WebSocket routes
+7. TCP server starts
 
 ### run — No Server Mode
 
@@ -131,7 +173,9 @@ pub struct Application {
 ```rust
 Application::new();           // create with 5 built-in providers
 app.with(provider);           // add or replace provider by name
+app.with_boxed(provider);     // add boxed provider
 app.without("provider_name"); // remove a provider
+app.without_boxed(provider);   // remove boxed provider
 app.run();                    // register all, then boot all
 ```
 
@@ -162,10 +206,6 @@ let service = app.container.resolve::<MyService>();
 ```
 
 ```rust
-pub struct Container {
-    bindings: HashMap<TypeId, Box<dyn Any>>,
-}
-
 impl Container {
     pub fn singleton<T: Any>(&mut self, value: T);
     pub fn resolve<T: Any>(&self) -> Option<&T>;
@@ -185,6 +225,9 @@ fn main() {
     boot()
         .provider(DatabaseProvider)
         .command(SeedCommand)
+        .withMiddlewares(vec![
+            Box::new(LoggerMiddleware),
+        ])
         .get("/", |_| Response::html(html!("pages/home.html")))
         .get("/users/:id", show_user)
         .ws("/chat", ChatHandler)

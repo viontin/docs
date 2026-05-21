@@ -5,6 +5,40 @@
 **Version:** 0.1.0  
 **Tagline:** Zero to One, Scale-up Easily
 
+### GemBinding — Standard Plug
+
+Gems declare what they wire into the framework via `GemBinding`:
+
+```rust
+impl GemBinding for Inertia {
+    fn gem_middlewares(&self) -> Vec<Box<dyn Middleware>> {
+        vec![Box::new(InertiaMiddleware::new())]
+    }
+}
+```
+
+`Boot::gem()` auto-detects `GemBinding` and registers middleware, providers, commands, and routes automatically.
+
+### Boot Builder & without\*() Methods
+
+The `Boot` builder provides `without*()` methods to disable default behaviors:
+
+```rust
+boot()
+    .withoutProvider("config")    // disable config loading
+    .withoutDefaultProviders()   // remove 5 built-in providers
+    .withoutCommands()           // clear CLI commands
+    .withoutGems()               // clear plugins
+    .withoutMiddlewares()        // clear middlewares
+```
+
+### Optional Features
+
+| Feature | Flag | Description |
+|---------|------|-------------|
+| Async server | `async` | Tokio-based async HTTP server |
+| Domain-Driven Design | `domain` | DDD building blocks (Domain, AggregateRoot, Repository) |
+
 ---
 
 ## 1. Platform Overview

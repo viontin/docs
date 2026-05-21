@@ -145,8 +145,10 @@ cargo run
 ```rust
 boot()                          // start the platform
   .provider(MyProvider)         // register a service provider
+  .withoutDefaultProviders()    // remove built-in providers
   .command(MyCommand)           // register a CLI command
-  .gem(MyGem)                   // register a plugin
+  .gem(MyGem)                   // register a plugin (auto-wires via GemBinding)
+  .middleware(MyMiddleware)     // register global middleware
   .get("/", handler)            // HTTP GET route
   .post("/", handler)           // HTTP POST route
   .any("/", handler)            // HTTP any-method route

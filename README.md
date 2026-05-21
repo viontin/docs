@@ -4,6 +4,33 @@
 
 **Zero to One, Scale-up Easily** — from prototype to production fleet on one platform.
 
+## Documentation Index
+
+| Category | Documents |
+|----------|-----------|
+| **Getting Started** | [getting-started](getting-started), [installation](installation), [philosophy](philosophy) |
+| **Architecture** | [architecture](architecture), [domain-driven](domain-driven) |
+| **App Types** | [web-app](web-app), [term-app](term-app), [native-app](native-app) |
+| **Core** | [app-boot](app-boot), [providers](providers), [config](config), [environment](environment), [error-handling](error-handling), [path](path), [support](support) |
+| **HTTP** | [http](http), [server](server), [async](async), [routing](routing), [middleware](middleware), [csrf](csrf), [websocket](websocket) |
+| **Data** | [database](database), [orm](orm), [collection](collection), [pagination](pagination), [semver](semver) |
+| **Security** | [auth](auth), [hashing](hashing), [encryption](encryption), [session](session) |
+| **Messaging** | [events](events), [listeners](listeners), [queue](queue), [mail](mail), [notification](notification), [schedule](schedule) |
+| **Performance** | [cache](cache), [rate-limit](rate-limit) |
+| **i18n** | [localization](localization) |
+| **Validation** | [validation](validation) |
+| **Files** | [filesystem](filesystem), [storage](storage) |
+| **Dev Tools** | [logging](logging), [debugging](debugging), [testing](testing), [cli](cli), [tui](tui) |
+| **Extensions** | [gems-system](gems-system), [gems/inertia](gems/inertia), [gems/tailwind](gems/tailwind), [gems/gem-contributor](gems/gem-contributor) |
+| **Standalone** | [viontest](viontest) |
+
+### Feature Flags
+
+| Feature | Cargo Flag | Description |
+|---------|-----------|-------------|
+| Async server | `async` | Tokio-based async HTTP server |
+| Domain-Driven Design | `domain` | DDD building blocks (Domain, AggregateRoot, Repository) |
+
 Viontin is a full-stack Rust application framework for building web services, CLI tools, terminal applications, and batch processing systems — all within a single, cohesive platform. It provides HTTP server, ORM, plugin system (Gems), background job processing, mail, notifications, caching, real-time TUI toolkit, architectural enforcement, and more.
 
 ---
