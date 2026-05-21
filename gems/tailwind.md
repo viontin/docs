@@ -39,10 +39,11 @@ viontin-gem-tailwind = { path = "../../repos/gems/crates/viontin-gem-tailwind" }
 
 ```rust
 use viontin::boot;
+use viontin_gem_tailwind::Tailwind;
 
 fn main() {
     boot()
-        .gem(viontin_gem_tailwind::Gem)
+        .gem(Tailwind::load())
         .serve("127.0.0.1:3000");
 }
 ```
@@ -114,6 +115,23 @@ Generated CSS will include only the classes used: `flex`, `flex-col`, `items-cen
 
 ---
 
+## API Reference
+
+### Tailwind — Gem
+
+| Method | Input | Description |
+|--------|-------|-------------|
+| `load()` | — | Create the TailwindCSS gem (implements `GemBuilder` + `GemBinding`) |
+
+### Standalone Functions
+
+| Function | Input | Return | Description |
+|----------|-------|--------|-------------|
+| `compile_project(root)` | `&Path` | `Result<String>` | Compile TailwindCSS from project source files |
+| `compile_source(content)` | `&str` | `Result<String>` | Compile TailwindCSS from raw HTML string |
+
+---
+
 ## Output
 
 ```
@@ -123,7 +141,6 @@ Generated CSS will include only the classes used: `flex`, `flex-col`, `items-cen
 The generated CSS file contains only the Tailwind utility classes found in your source files — no unused styles, no purge step needed.
 
 ---
-
 ## Complete Example
 
 ```toml
@@ -135,10 +152,11 @@ path = "public/css/app.css"
 ```rust
 // src/main.rs
 use viontin::{boot, html};
+use viontin_gem_tailwind::Tailwind;
 
 fn main() {
     boot()
-        .gem(viontin_gem_tailwind::Gem)
+        .gem(Tailwind::load())
         .get("/", |_| {
             Response::html(html!("templates/index.html"))
         })

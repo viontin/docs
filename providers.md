@@ -134,7 +134,7 @@ impl ServiceProvider for DatabaseProvider {
 fn main() {
     boot()
         .provider(DatabaseProvider)
-        .run(|_| {
+        .run_with(|_ctx| {
             // All providers registered and booted
         });
 }

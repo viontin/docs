@@ -33,11 +33,13 @@ Register gems via `boot().gem()`:
 
 ```rust
 use viontin::boot;
+use viontin_gem_tailwind::Tailwind;
+use viontin_gem_inertia::Inertia;
 
 fn main() {
     boot()
-        .gem(viontin_gem_tailwind::Gem)
-        .gem(viontin_gem_inertia::Inertia::new("resources/views/app.html"))
+        .gem(Tailwind::load())
+        .gem(Inertia::load().entry("resources/views/app.html"))
         .serve(":3000");
 }
 ```
@@ -54,7 +56,7 @@ When you call `.gem(gem)`:
 
 ```rust
 boot()
-    .gem(Inertia::new("views/app.html"))  // middleware auto-registered via GemBinding
+    .gem(Inertia::load().entry("views/app.html"))  // middleware auto-registered via GemBinding
     .get("/", |_| inertia("Home", json!({})))
     .serve(":3000");
 ```
@@ -67,38 +69,28 @@ No `.middleware(Inertia::middleware())` needed — the binding handles it.
 
 ```rust
 boot()
-    .gem(TailwindGem)
-    .gem(Inertia::new("views/app.html"))
-    .gem(MyCustomGem)
-```
-
-Or using the plural form:
-
-```rust
-boot()
-    .withGems(vec![
-        Box::new(TailwindGem),
-        Box::new(Inertia::new("views/app.html")),
-    ])
+    .gem(Tailwind::load())
+    .gem(Inertia::load().entry("views/app.html"))
+    .gem(MyCustomGem::load())
 ```
 
 ---
 
 ## Gem Lifecycle
 
-During `boot().serve(":3000")`:
+During `.serve(":3000")` or `.run()`:
 
 ```
 boot()
   ├── gem(GemA)               → register + auto-wire bindings
   ├── gem(GemB)               → register + auto-wire bindings
-  ├── .serve(":3000")
+  ├── .run()
   │     ├── gems.before_build_all()    ← hooks execute here
   │     │     ├── Tailwind: generate CSS
   │     │     └── Inertia:  load root view template
   │     ├── app.run()
-  │     └── server starts
-  └── gems.after_build_all()           ← cleanup hooks here
+  │     ├── CLI dispatch (if args match a command) → exit
+  │     └── entry(|ctx| { ... })       ← user callback
 ```
 
 ### before_build
@@ -124,7 +116,7 @@ Gems that need to register middleware, providers, commands, or routes can implem
 
 ```rust
 // Example: tailwind gem (no binding needed)
-impl GemBinding for TailwindGem {}  // empty — all defaults
+impl GemBinding for Tailwind {}  // empty — all defaults
 ```
 
 ```rust
@@ -147,12 +139,82 @@ impl GemBinding for Inertia {
 
 ---
 
-## Managing Gems at Runtime
+## API Reference
+
+### GemBuilder — Constructor Contract
 
 ```rust
-// Access the gem registry
-// Gems are registered automatically by boot(), but you can also access them
-// through the framework at runtime if needed.
+pub trait GemBuilder: Sized {
+    fn load() -> Self;
+}
+```
+
+All gems must implement `GemBuilder`. The `load()` method is the standard parameterless constructor. Optional configuration is done via builder chaining:
+
+```rust
+MyGem::load().option(value)
+```
+
+### GemFacade — Lifecycle Hooks
+
+```rust
+pub trait GemFacade: Debug + Send + Sync {
+    fn meta(&self) -> &GemMeta;
+    fn before_build(&self) -> Result<()> { Ok(()) }
+    fn after_build(&self) -> Result<()> { Ok(()) }
+}
+```
+
+| Method | When | Purpose |
+|--------|------|---------|
+| `meta()` | Required | Return gem identity metadata |
+| `before_build()` | During `run()` | Asset generation, config validation, template loading |
+| `after_build()` | After server start | Cleanup, logging, notifications |
+
+### GemBinding — Automatic Wiring
+
+```rust
+pub trait GemBinding: GemFacade + GemBuilder {
+    fn gem_middlewares(&self) -> Vec<Box<dyn Middleware>> { vec![] }
+    fn gem_providers(&self) -> Vec<Box<dyn ServiceProvider>> { vec![] }
+    fn gem_commands(&self) -> Vec<Box<dyn Command>> { vec![] }
+    fn gem_routes(&self) -> Option<fn(Router) -> Router> { None }
+}
+```
+
+| Method | Auto-wired to | Purpose |
+|--------|---------------|---------|
+| `gem_middlewares()` | Global middleware chain | Intercept every request |
+| `gem_providers()` | DI container | Register services |
+| `gem_commands()` | CLI kernel | Add CLI commands |
+| `gem_routes()` | HTTP router | Add static files or SPA fallback |
+
+### GemRegistry
+
+```rust
+impl GemRegistry {
+    pub fn register(&mut self, gem: impl GemFacade + 'static);
+    pub fn remove(&mut self, name: &str);
+    pub fn get(&self, name: &str) -> Option<&dyn GemFacade>;
+    pub fn all(&self) -> Vec<&dyn GemFacade>;
+    pub fn by_kind(&self, kind: GemKind) -> Vec<&dyn GemFacade>;
+}
+```
+
+### GemMeta
+
+```rust
+pub struct GemMeta {
+    pub name: &'static str,
+    pub version: &'static str,
+    pub description: &'static str,
+    pub kind: GemKind,
+    pub homepage: &'static str,
+}
+```
+
+```rust
+pub const META: GemMeta = GemMeta::new("my-gem", "0.1.0", "Description", GemKind::Integration);
 ```
 
 ---
@@ -161,13 +223,13 @@ impl GemBinding for Inertia {
 
 ```rust
 use viontin::boot;
-use viontin_gem_tailwind::Gem as TailwindGem;
+use viontin_gem_tailwind::Tailwind;
 use viontin_gem_inertia::Inertia;
 
 fn main() {
     boot()
-        .gem(TailwindGem)                        // build-time CSS
-        .gem(Inertia::new("resources/views/app.html"))  // SPA bridge
+        .gem(Tailwind::load())                              // build-time CSS
+        .gem(Inertia::load().entry("resources/views/app.html"))  // SPA bridge
         .get("/", |_| inertia("Home", json!({ "title": "Welcome" })))
         .serve(":3000");
 }

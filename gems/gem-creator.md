@@ -39,9 +39,19 @@ viontin-gems = { path = "../viontin-gems" }
 
 ## Core Concepts
 
-Every gem needs two things:
+Every gem needs three things:
 
-### 1. GemFacade — Lifecycle Hooks
+### 1. GemBuilder — Constructor Contract
+
+```rust
+pub trait GemBuilder: Sized {
+    fn load() -> Self;
+}
+```
+
+Every gem must implement `GemBuilder`. The `load()` method is the standard constructor — always parameterless. Configuration is done via builder method chaining.
+
+### 2. GemFacade — Lifecycle Hooks
 
 ```rust
 pub trait GemFacade: Debug + Send + Sync {
@@ -51,7 +61,7 @@ pub trait GemFacade: Debug + Send + Sync {
 }
 ```
 
-### 2. GemMeta — Identity
+### 3. GemMeta — Identity
 
 ```rust
 pub const META: GemMeta = GemMeta::new("my-gem", "0.1.0", "Does something", GemKind::Integration);
@@ -71,8 +81,8 @@ pub const META: GemMeta = GemMeta::new("my-gem", "0.1.0", "Does something", GemK
 
 ```rust
 // src/lib.rs
+use viontin_gems::{GemBuilder, GemMeta, GemKind, GemFacade};
 use viontin_framework::Result;
-use viontin_framework::gem::{GemMeta, GemKind, GemFacade};
 
 pub const META: GemMeta = GemMeta::new(
     "example",
@@ -86,9 +96,16 @@ pub struct ExampleGem {
     pub config_path: String,
 }
 
+impl GemBuilder for ExampleGem {
+    fn load() -> Self {
+        ExampleGem { config_path: String::new() }
+    }
+}
+
 impl ExampleGem {
-    pub fn new(config_path: &str) -> Self {
-        ExampleGem { config_path: config_path.into() }
+    pub fn config(mut self, path: &str) -> Self {
+        self.config_path = path.into();
+        self
     }
 }
 ```
@@ -123,7 +140,7 @@ impl GemFacade for ExampleGem {
 If your gem needs to register middleware, providers, CLI commands, or routes into the framework, implement `GemBinding`:
 
 ```rust
-use viontin_framework::gem::GemBinding;
+use viontin_gems::GemBinding;
 use viontin_framework::middleware::Middleware;
 
 impl GemBinding for ExampleGem {
@@ -159,6 +176,8 @@ If your gem doesn't need any bindings, just add an empty implementation:
 ```rust
 impl GemBinding for ExampleGem {}
 ```
+
+> Note: `GemBinding` requires `GemBuilder` — your gem already has `load()` from Step 1, so only the `GemBinding` block needs to be added.
 
 ---
 
@@ -199,8 +218,8 @@ let gem = DynamicGem::new(
 
 ```rust
 use std::path::Path;
+use viontin_gems::{GemBuilder, GemMeta, GemKind, GemFacade, GemBinding};
 use viontin_framework::Result;
-use viontin_framework::gem::{GemMeta, GemKind, GemFacade, GemBinding};
 
 pub const META: GemMeta = GemMeta::new(
     "asset-bundler",
@@ -215,12 +234,24 @@ pub struct AssetBundler {
     output_dir: String,
 }
 
-impl AssetBundler {
-    pub fn new(entry: &str, output_dir: &str) -> Self {
+impl GemBuilder for AssetBundler {
+    fn load() -> Self {
         AssetBundler {
-            entry: entry.into(),
-            output_dir: output_dir.into(),
+            entry: String::new(),
+            output_dir: String::new(),
         }
+    }
+}
+
+impl AssetBundler {
+    pub fn entry(mut self, path: &str) -> Self {
+        self.entry = path.into();
+        self
+    }
+
+    pub fn output(mut self, dir: &str) -> Self {
+        self.output_dir = dir.into();
+        self
     }
 }
 
@@ -242,6 +273,74 @@ impl GemBinding for AssetBundler {
 }
 ```
 
+### Usage
+
+```rust
+boot()
+    .gem(AssetBundler::load()
+        .entry("src/index.js")
+        .output("public/assets/")
+    )
+    .serve(":3000");
+```
+
+---
+
+## API Reference
+
+### Traits
+
+| Trait | Super-trait | Purpose |
+|-------|-------------|---------|
+| `GemBuilder` | `Sized` | Constructor contract — every gem must implement `fn load() -> Self` |
+| `GemFacade` | `Debug + Send + Sync` | Lifecycle hooks — `meta()`, `before_build()`, `after_build()` |
+| `GemBinding` | `GemFacade + GemBuilder` | Auto-wiring — middleware, providers, commands, routes |
+
+### GemBuilder
+
+| Method | Return | Description |
+|--------|--------|-------------|
+| `load()` | `Self` | Standard parameterless constructor |
+
+### GemFacade
+
+| Method | Return | Description |
+|--------|--------|-------------|
+| `meta()` | `&GemMeta` | Return gem identity metadata (REQUIRED) |
+| `before_build()` | `Result<()>` | Pre-boot hook — asset generation, validation |
+| `after_build()` | `Result<()>` | Post-boot hook — cleanup, logging |
+
+### GemBinding
+
+| Method | Return | Description |
+|--------|--------|-------------|
+| `gem_middlewares()` | `Vec<Box<dyn Middleware>>` | Register global middlewares |
+| `gem_providers()` | `Vec<Box<dyn ServiceProvider>>` | Register service providers |
+| `gem_commands()` | `Vec<Box<dyn Command>>` | Register CLI commands |
+| `gem_routes()` | `Option<fn(Router) -> Router>` | Configure HTTP routes |
+
+### GemMeta
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `&'static str` | Unique identifier (kebab-case) |
+| `version` | `&'static str` | Semver version |
+| `description` | `&'static str` | Short description |
+| `kind` | `GemKind` | Category: `Integration`, `Platform`, `Database`, `Auth`, `DevTool`, `Theme`, `Custom(&str)` |
+| `homepage` | `&'static str` | Optional URL |
+
+### GemKind
+
+| Variant | Description |
+|---------|-------------|
+| `Integration` | Third-party integration (Inertia, etc.) |
+| `Platform` | Platform extension |
+| `Database` | Database driver or tool |
+| `Auth` | Authentication provider |
+| `DevTool` | Development tool (TailwindCSS, bundler) |
+| `Theme` | Theme or styling |
+| `Custom(&str)` | User-defined category |
+
 ---
 
 ## Testing Your Gem
@@ -255,7 +354,7 @@ fn gem_meta_is_correct() {
 
 #[test]
 fn gem_binding_works() {
-    let gem = ExampleGem::new("config.toml");
+    let gem = ExampleGem::load().config("config.toml");
     assert!(gem.gem_middlewares().is_empty());
     assert!(gem.gem_providers().is_empty());
 }

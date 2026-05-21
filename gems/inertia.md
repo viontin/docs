@@ -61,7 +61,7 @@ use viontin_gem_inertia::{Inertia, inertia};
 
 fn main() {
     boot()
-        .gem(Inertia::new("resources/views/app.html"))  // middleware auto-wired via GemBinding
+        .gem(Inertia::load().entry("resources/views/app.html"))  // middleware auto-wired via GemBinding
         .get("/", |_| inertia("Home", json!({ "title": "Welcome" })))
         .get("/users", |_| inertia("Users/Index", json!({ "users": users })))
         .serve(":3000");
@@ -99,7 +99,7 @@ The `{{data-page}}` placeholder will be replaced with the JSON page data on full
 ```rust
 use viontin_gem_inertia::Inertia;
 
-Inertia::new("resources/views/app.html")
+Inertia::load().entry("resources/views/app.html")
 ```
 
 The gem, during `before_build()`:
@@ -190,14 +190,45 @@ Default: `"1.0"`.
 
 ---
 
-## InertiaMiddleware
+## API Reference
 
-```rust
-Inertia::middleware()
-    .with_root_view("views/app.html")
-```
+### Inertia — Gem Builder
 
-The middleware:
+| Method | Input | Description |
+|--------|-------|-------------|
+| `load()` | — | Create a new Inertia gem (implements `GemBuilder`) |
+| `entry(path)` | `&str` | Set the root view template path |
+| `middleware()` | — | Create an InertiaMiddleware instance |
+
+### InertiaPage — Response Builder
+
+| Method | Input | Description |
+|--------|-------|-------------|
+| `inertia(component, props)` | `&str, Value` | Create a new Inertia page response |
+| `.url(url)` | `&str` | Override auto-detected URL |
+| `.status(code)` | `u16` | Set HTTP status code |
+| `.with(props)` | `Value` | Merge additional props |
+| `.only(keys)` | `&[&str]` | Partial reload — only these props |
+| `redirect(url)` | `&str` | Create a redirect response (associated fn) |
+| `back()` | — | Redirect back to previous page (associated fn) |
+| `From<InertiaPage> for Response` | — | Convert to Viontin HTTP response |
+
+### Global Functions
+
+| Function | Input | Description |
+|----------|-------|-------------|
+| `share(key, value)` | `&str, Value` | Share global props available on every page |
+| `unshare(key)` | `&str` | Remove a shared prop |
+| `flush_shared()` | — | Remove all shared props |
+| `set_version(v)` | `&str` | Set asset version for full reload detection |
+| `version()` | — | Get current asset version |
+
+### InertiaMiddleware
+
+| Method | Input | Description |
+|--------|-------|-------------|
+| `new()` | — | Create middleware instance |
+| `with_root_view(path)` | `&str` | Set root view template path |
 
 | Condition | Behavior |
 |-----------|----------|
@@ -216,7 +247,7 @@ use viontin_gem_inertia::{Inertia, inertia, share, set_version};
 
 fn main() {
     boot()
-        .gem(Inertia::new("resources/views/app.html"))
+        .gem(Inertia::load().entry("resources/views/app.html"))
         .middleware(Inertia::middleware())
         .get("/", |_| {
             share("user", json!({ "id": 1, "name": "Alice" }));

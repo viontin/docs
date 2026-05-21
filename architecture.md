@@ -289,7 +289,7 @@ boot()
 Boot
   ├── .provider(P)          → register a ServiceProvider
   ├── .command(C)           → register a CLI Command
-  ├── .gem(G)               → register a Gem plugin
+  ├── .gem(G)               → register a Gem plugin (requires `GemBuilder` + `GemBinding`)
   ├── .routes(fn)           → configure Router in closure
   ├── .get("/", handler)    → register GET route
   ├── .post("/", handler)   → register POST route
@@ -297,8 +297,10 @@ Boot
   ├── .ws("/", handler)     → register WebSocket handler
   ├── .ws_with_config(...)  → register WebSocket with config
   │
-  ├── .serve("addr")        → full HTTP server mode
-  └── .run(f)               → non-server mode (library/CLI)
+   ├── .entry(f)             → define application entry point
+   ├── .serve("addr")        → HTTP server (shortcut for `entry(\|ctx\| ctx.serve(addr)).run()`)
+   ├── .run()                → finalize + execute
+   └── .run_with(f)          → shortcut for `entry(f).run()`
 ```
 
 ### 5.2 Serve Flow
@@ -327,12 +329,12 @@ Boot
 ### 5.3 Run Flow
 
 ```
-.run(|app| { ... })
+.run()
   │
   ├── gems.before_build_all()
   ├── app.run()
-  ├── If CLI args exist → kernel.run()
-  └── Execute user closure
+  ├── If CLI args exist → kernel.run() → exit
+  └── entry(|ctx| { ... })  ← user callback
 ```
 
 This mode is used for CLI-only tools, library-style usage, or custom application loops where no HTTP server is needed.
@@ -891,12 +893,13 @@ Errors are categorized by `ArchSeverity` (Error or Warning) and can be printed i
 
 ```rust
 use viontin::{boot, domain, html};
+use viontin_gem_tailwind::Tailwind;
 
 fn main() {
     boot()
         .provider(MyDatabaseProvider)      // register service provider
         .command(MyCustomCommand)          // register CLI command
-        .gem(TailwindGem)                  // register TailwindCSS plugin
+        .gem(Tailwind::load())             // register TailwindCSS plugin
         .get("/", |_req| Response::html(html!("pages/index.html")))
         .post("/submit", submit_handler)
         .ws("/chat", ChatHandler)

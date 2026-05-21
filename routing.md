@@ -121,7 +121,7 @@ use viontin::app::RouteProvider;
 
 boot()
     .provider(RouteProvider)
-    .run(|_| {});
+        .run_with(|_ctx| {});
 ```
 
 ---

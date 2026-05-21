@@ -21,7 +21,7 @@
 | **Validation** | [validation](validation) |
 | **Files** | [filesystem](filesystem), [storage](storage) |
 | **Dev Tools** | [logging](logging), [debugging](debugging), [testing](testing), [cli](cli), [tui](tui) |
-| **Extensions** | [gems-system](gems-system), [gems/inertia](gems/inertia), [gems/tailwind](gems/tailwind), [gems/gem-contributor](gems/gem-contributor) |
+| **Extensions** | [gems-system](gems-system), [gems/inertia](gems/inertia), [gems/tailwind](gems/tailwind), [gems/gem-creator](gems/gem-creator) |
 | **Standalone** | [viontest](viontest) |
 
 ### Feature Flags

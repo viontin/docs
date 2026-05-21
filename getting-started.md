@@ -93,7 +93,7 @@ impl Command for GreetCommand {
 fn main() {
     boot()
         .command(GreetCommand)
-        .run(|_| {});
+        .run_with(|_ctx| {});
 }
 ```
 
@@ -140,19 +140,22 @@ cargo run
 | [Native App](native-app) | CLI commands, signatures, input/output |
 | [Terminal App](term-app) | TUI prompts, styling, interactive workflows |
 
-## Quick Reference
+## API Reference
 
-```rust
-boot()                          // start the platform
-  .provider(MyProvider)         // register a service provider
-  .withoutDefaultProviders()    // remove built-in providers
-  .command(MyCommand)           // register a CLI command
-  .gem(MyGem)                   // register a plugin (auto-wires via GemBinding)
-  .middleware(MyMiddleware)     // register global middleware
-  .get("/", handler)            // HTTP GET route
-  .post("/", handler)           // HTTP POST route
-  .any("/", handler)            // HTTP any-method route
-  .ws("/chat", handler)         // WebSocket route
-  .serve("127.0.0.1:3000")     // start web server
-  .run(f)                       // run without server (CLI/background)
-```
+### Boot Builder
+
+| Method | Description |
+|--------|-------------|
+| `boot()` | Create a new Boot builder |
+| `.provider(P)` | Register a service provider |
+| `.command(C)` | Register a CLI command |
+| `.gem(G)` | Register a gem plugin (implements `GemBuilder` + `GemBinding`) |
+| `.middleware(M)` | Register global middleware |
+| `.get(path, handler)` | Register HTTP GET route |
+| `.post(path, handler)` | Register HTTP POST route |
+| `.any(path, handler)` | Register route for any HTTP method |
+| `.ws(path, handler)` | Register WebSocket handler |
+| `.serve(addr)` | Start HTTP server (shortcut) |
+| `.entry(f)` | Define application entry point |
+| `.run()` | Finalize + execute |
+| `.run_with(f)` | Shortcut for `entry(f).run()` |

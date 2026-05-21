@@ -48,7 +48,7 @@ impl Command for GreetCommand {
 fn main() {
     boot()
         .command(GreetCommand)
-        .run(|_| {});
+        .run_with(|_ctx| {});
 }
 ```
 
@@ -140,7 +140,7 @@ fn main() {
         .command(BackupCommand)
         .command(RestoreCommand)
         .command(HealthCommand)
-        .run(|_| {
+        .run_with(|_ctx| {
             println!("Available commands:");
             println!("  backup  [--force]");
             println!("  restore <name>");
@@ -235,7 +235,7 @@ When run without arguments, the closure executes instead:
 fn main() {
     boot()
         .command(GreetCommand)
-        .run(|_| {
+        .run_with(|_ctx| {
             // No CLI args provided — run default behavior
             println!("Usage: cargo run -- greet <name>");
         });
@@ -290,7 +290,7 @@ fn perform_search(query: &str, limit: &str) -> Vec<SearchResult> {
 fn main() {
     boot()
         .command(SearchCommand)
-        .run(|_| {
+        .run_with(|_ctx| {
             println!("Run `cargo run -- search <query>`");
         });
 }

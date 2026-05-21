@@ -26,7 +26,7 @@ While the GUI toolkit is being built, you can use Viontin's platform services as
 use viontin::prelude::*;
 
 fn main() {
-    boot().run(|_| {
+    boot().run_with(|_ctx| {
         // Viontin services are ready
         let config = Config::new();
         let logger = Logger::new();

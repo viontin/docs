@@ -131,9 +131,9 @@ When the framework itself isn't enough, you extend it via Gems — WASM-based pl
 
 ```rust
 boot()
-    .gem(TailwindGem)          // CSS at build time
-    .gem(CustomEncryptionGem)  // AES via a gem
-    .gem(ImageProcessingGem)   // transform at deploy time
+    .gem(Tailwind::load())           // CSS at build time
+    .gem(MyEncryptionGem::load())    // AES via a gem
+    .gem(MyImageGem::load())         // transform at deploy time
 ```
 
 Gems integrate at the `before_build` and `after_build` phases — they can process assets, generate code, validate configuration, or run external tools — all without forking the framework.
@@ -184,20 +184,24 @@ boot()
 boot()
     .command(DeployCommand)
     .command(RollbackCommand)
-    .run(|_| {});
+    .run_with(|_ctx| {});
 
 // A TUI application
 boot()
     .command(InteractiveWizard)
-    .run(|_| {});
+    .run_with(|_ctx| {});
 
 // A batch processor
 boot()
     .command(ProcessQueueCommand)
     .provider(QueueWorkerProvider)
-    .run(|app| {
-        loop { app.queue().process_next() }
-    });
+    .entry(|ctx| {
+        let app = ctx.into_inner();
+        loop {
+            // process queue jobs
+        }
+    })
+    .run();
 ```
 
 The architectural patterns — facades, service providers, CLI commands, configuration, logging — are shared across all four modes. A mail notification you write for the web also works in a CLI command. A queue job you define for the web can be processed by a separate worker binary compiled from the same codebase.

@@ -16,7 +16,7 @@ fn main() {
     boot()
         .provider(MyProvider)
         .command(MyCommand)
-        .gem(MyGem)
+        .gem(MyGem::load())
         .get("/", handler)
         .serve("127.0.0.1:3000");
 }
@@ -67,13 +67,15 @@ boot().withCommands(vec![
 
 ```rust
 // Single
-boot().gem(MyGem);
+boot().gem(MyGem::load());
 
 // Group
 boot().withGems(vec![
-    Box::new(viontin_gem_inertia::Inertia::new("views/app.html")),
+    Box::new(/* GemBinding implementor */),
 ]);
 ```
+
+> Every gem uses `SomeGem::load()` as its standard constructor. Configuration is done via builder chaining: `SomeGem::load().option(value)`.
 
 ### Middleware
 
@@ -124,7 +126,7 @@ boot()
 
 ## Terminal Methods
 
-### serve — Start HTTP Server
+### serve — Start HTTP Server (Shortcut)
 
 ```rust
 boot()
@@ -132,30 +134,49 @@ boot()
     .serve("127.0.0.1:3000");
 ```
 
-Flow:
-1. `gems.before_build_all()` — plugin hooks
-2. `app.run()` — register + boot all providers
-3. `kernel.run(&args)` — dispatch CLI command if args exist
-4. `router.extend_from_registry()` — merge route registry
-5. Global middlewares applied to router
-6. `ws_router.attach(router)` — merge WebSocket routes
-7. TCP server starts
+`serve(addr)` is a shortcut for `entry(|ctx| ctx.serve(addr)).run()`.
 
-### run — No Server Mode
+### run — Finalize + Execute
 
 ```rust
 boot()
-    .command(BackupCommand)
-    .run(|_| {
-        println!("Running in library mode");
+    .entry(|ctx| {
+        ctx.serve(":3000");
+    })
+    .run();
+```
+
+Or with the shorthand:
+
+```rust
+boot()
+    .run_with(|ctx| {
+        ctx.serve(":3000");
     });
 ```
 
 Flow:
-1. `gems.before_build_all()`
-2. `app.run()`
-3. `kernel.run(&args)` if CLI args exist
-4. Executes the closure
+1. `gems.before_build_all()` — plugin hooks
+2. `app.run()` — register + boot all providers
+3. `kernel.run(&args)` — dispatch CLI command if args exist
+4. Finalize router — merge registry, attach middleware, WS
+5. Call `entry` callback with `BootContext`
+
+### BootContext — Runtime Access
+
+```rust
+.entry(|ctx| {
+    ctx.serve(":3000");       // HTTP server (blocking)
+    // ctx.cli();             // CLI dispatch (manual)
+    // let app = ctx.into_inner(); // library mode
+})
+```
+
+| Method | Purpose |
+|--------|---------|
+| `serve(addr)` | Start HTTP server (blocking) |
+| `cli()` | Dispatch CLI commands |
+| `into_inner()` | Return the underlying `Application` |
 
 ---
 
@@ -191,28 +212,68 @@ app.run();                    // register all, then boot all
 
 ---
 
-## Container
+## API Reference
 
-Type-safe DI container keyed by `TypeId`:
+### Boot — Builder Methods
 
-```rust
-let mut app = Application::new();
+| Method | Input | Description |
+|--------|-------|-------------|
+| `provider(P)` | `impl ServiceProvider` | Register a service provider |
+| `withProviders(Vec<Box<dyn ServiceProvider>>)` | Vec | Register multiple providers |
+| `withoutProvider(name)` | `&str` | Remove a provider by name |
+| `withoutDefaultProviders()` | — | Remove all 5 built-in providers |
+| `command(C)` | `impl Command` | Register a CLI command |
+| `withCommands(Vec<Box<dyn Command>>)` | Vec | Register multiple commands |
+| `withoutCommand(name)` | `&str` | Remove a command by name |
+| `withoutCommands()` | — | Remove all commands |
+| `gem(G)` | `impl GemBinding + GemBuilder` | Register a gem plugin |
+| `withoutGem(name)` | `&str` | Remove a gem by name |
+| `withoutGems()` | — | Remove all gems |
+| `middleware(M)` | `impl Middleware` | Register global middleware |
+| `withMiddlewares(Vec<Box<dyn Middleware>>)` | Vec | Register multiple middlewares |
+| `withoutMiddlewares()` | — | Remove all middlewares |
+| `get(path, handler)` | `&str, fn` | Register GET route |
+| `post(path, handler)` | `&str, fn` | Register POST route |
+| `any(path, handler)` | `&str, fn` | Register any-method route |
+| `routes(fn)` | `fn(Router) -> Router` | Configure router in closure |
+| `ws(path, handler)` | `&str, impl WebSocketHandler` | Register WebSocket route |
+| `ws_with_config(path, config, handler)` | `&str, WebSocketConfig, impl WebSocketHandler` | WebSocket with config |
 
-// Register a singleton
-app.container.singleton(MyService::new());
+### Boot — Terminal Methods
 
-// Resolve at runtime
-let service = app.container.resolve::<MyService>();
-```
+| Method | Input | Description |
+|--------|-------|-------------|
+| `serve(addr)` | `&str` | Start HTTP server (shortcut for `entry(ctx.serve).run()`) |
+| `entry(f)` | `FnOnce(BootContext)` | Define application entry point |
+| `run()` | — | Finalize + execute (init, CLI check, call entry) |
+| `run_with(f)` | `FnOnce(BootContext)` | Shortcut for `entry(f).run()` |
 
-```rust
-impl Container {
-    pub fn singleton<T: Any>(&mut self, value: T);
-    pub fn resolve<T: Any>(&self) -> Option<&T>;
-    pub fn has<T: Any>(&self) -> bool;
-    pub fn remove<T: Any>(&mut self);
-}
-```
+### BootContext
+
+| Method | Input | Description |
+|--------|-------|-------------|
+| `serve(addr)` | `&str` | Start HTTP server (blocking) |
+| `cli()` | — | Dispatch CLI commands (exits if command found) |
+| `into_inner()` | — | Consume context, return `Application` |
+
+### Application
+
+| Method | Input | Description |
+|--------|-------|-------------|
+| `new()` | — | Create with 5 built-in providers |
+| `with(provider)` | `impl ServiceProvider` | Add or replace provider |
+| `with_boxed(provider)` | `Box<dyn ServiceProvider>` | Add boxed provider |
+| `without(name)` | `&str` | Remove a provider |
+| `run()` | — | Register all providers, then boot all |
+
+### Container
+
+| Method | Input | Description |
+|--------|-------|-------------|
+| `singleton(value)` | `T: Any` | Register a singleton |
+| `resolve::<T>()` | — | Resolve a singleton `Option<&T>` |
+| `has::<T>()` | — | Check if singleton exists |
+| `remove::<T>()` | — | Remove a singleton |
 
 ---
 
