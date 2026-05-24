@@ -1,6 +1,6 @@
 # Known Issues
 
-> **Status:** This document catalogs all known issues, bugs, and technical debt across the Viontin project. Updated as of 2026-05-24. Resolved items have been removed from this list.
+> **Status:** This document catalogs all known issues, bugs, and technical debt across the Viontin project. Updated as of 2026-05-24. Resolved items have been removed.
 
 Issues are categorized by severity:
 
@@ -20,475 +20,156 @@ Issues are categorized by severity:
 **Location:** Entire codebase  
 **Type:** Quality assurance
 
-The entire project contains only 9 `#[test]` functions, all located in `repos/framework/crates/framework/src/ws/mod.rs` (WebSocket frame encoding/decoding tests). All other modules — Entity, Model, Repository, Service, Controller, Auth, Cache, Config, Encryption, Events, Queue, Rate Limiter, etc. — have **zero tests**.
+Only 9 `#[test]` functions exist — all in WebSocket frame encoding. No integration tests, no property-based tests, no CI test runner.
 
-Additionally:
-- No integration tests (`tests/` directories) exist anywhere
-- No property-based testing
-- No documentation tests (`/// ```rust` examples that compile)
-- No CI pipeline runs any test command
-
-**Impact:** Any refactoring or change risks breaking existing functionality with no safety net.
-
-**Fix:** Add tests incrementally, starting with the most critical modules: ORM QueryBuilder, Repository traits, Auth, and boot sequence.
-
----
-
-### C-006: No graceful shutdown
-
-**Location:** `repos/framework/crates/framework/src/server/mod.rs:178-195`  
-**Type:** Operational
-
-The HTTP server runs in an infinite `for stream in listener.incoming()` loop with no signal handling (SIGTERM, SIGINT). When the process receives a termination signal, in-flight requests are immediately dropped and connections are aborted. There is no:
-- Signal handler for graceful shutdown
-- Drain mechanism for in-flight requests
-- Connection close handshake
-- Timeout for pending requests
-
-**Impact:** Production deployments (Kubernetes, Docker, systemd) will abort active connections during rolling updates or scale-down events.
-
-**Fix:** Implement signal handling with `ctrlc` crate or `tokio::signal`, add a shutdown flag, and drain in-flight requests before exiting.
-
----
-
-### C-007: No health check endpoints
-
-**Location:** Missing feature  
-**Type:** Operational
-
-There is no built-in `/healthz` (liveness) or `/readyz` (readiness) endpoint. Load balancers, Kubernetes probes, and orchestration tools have no way to determine if the application is running or ready to serve traffic.
-
-**Impact:** Cannot be deployed in container orchestration environments (Kubernetes, Nomad, ECS).
-
-**Fix:** Add default health check routes to the Router that are always registered, returning 200 with basic application status.
-
----
-
-### C-008: All ORM driver crates are empty stubs
-
-**Location:** `repos/orm/crates/viontin-orm-pg/`, `viontin-orm-mysql/`, `viontin-orm-sqlite/`  
-**Type:** Non-functional feature
-
-All three database driver crates are placeholders. Every method returns `Err("Not implemented".to_string())`:
-
-```rust
-impl Connection for PgConnection {
-    fn query(&self, _sql: &str, _params: &[Value]) -> Result<Vec<Row>, String> {
-        Err("Not implemented".to_string())
-    }
-}
-```
-
-No actual database drivers exist for PostgreSQL, MySQL, or SQLite. The drivers have no dependencies on `sqlx` or `rusqlite`.
-
-**Impact:** The entire ORM is non-functional. No database queries can be executed.
-
-**Fix:** Implement actual database connectivity. For SQLite, add `rusqlite` dependency and implement the `Connection` trait. For PG/MySQL, add `sqlx` and implement async-aware connection pools.
-
----
-
-### C-009: `QueryScoped` is a no-op
-
-**Location:** `repos/framework/crates/framework/src/repository/mod.rs:131-136`  
-**Type:** Non-functional feature
-
-The `QueryScoped` builder type has method implementations that return hardcoded defaults:
-
-```rust
-pub fn where_eq(self, _col: &str, _val: impl Into<Value>) -> Self { self }
-pub fn all(&self) -> Result<Vec<M>, String> { Ok(vec![]) }   // always empty
-pub fn first(&self) -> Result<Option<M>, String> { Ok(None) } // always None
-pub fn count(&self) -> Result<u64, String> { Ok(0) }           // always 0
-```
-
-**Impact:** Scoped queries via `repo.query().where_eq("active", true).all()` silently return empty results instead of filtering. This can cause data loss or incorrect application behavior without any error signal.
-
-**Fix:** Implement a real scoped query mechanism that maps conditions into `QueryBuilder` calls and delegates to `Repository::all()`.
-
----
-
-### C-010: XOR encryption is NOT cryptographically secure
-
-**Location:** `repos/framework/crates/framework/src/encryption/mod.rs`  
-**Type:** Security
-
-The built-in `SimpleEncrypter` uses XOR with a salt byte. This is trivially reversible with known-plaintext attacks and provides no real security. The documentation warns against production use but provides no production alternative — no AES implementation exists anywhere in the codebase.
-
-**Impact:** Any developer using `SimpleEncrypter` for real data protection has a false sense of security.
-
-**Fix:** Either implement proper AES-256-GCM encryption as a built-in, or remove the feature entirely and provide clear guidance on using external encryption crates.
+**Fix:** Add tests incrementally starting with ORM QueryBuilder, Repository, Auth, and boot sequence.
 
 ---
 
 ### C-011: All errors are stringly-typed
 
-**Location:** All `Repository`, `Service`, `Controller`, `Model`, `Entity` traits  
-**Type:** Architecture / Error handling
+Every trait returns `Result<_, String>`. `FrameworkError` is a single `Internal(String)` variant. Callers cannot distinguish between "not found", "validation error", "db connection lost", or "permission denied".
 
-Every core trait returns `Result<_, String>` instead of a proper error type:
-
-```rust
-pub trait Repository<M: Entity> {
-    fn all(&self) -> Result<Vec<M>, String>;
-    fn save(&self, entity: &mut M) -> Result<M, String>;
-    // ...
-}
-
-pub trait Service<M: Entity> {
-    fn all(&self) -> Result<Vec<M>, String>;
-    // ...
-}
-```
-
-`FrameworkError` itself is a single-variant enum:
-
-```rust
-pub enum FrameworkError {
-    #[error("{0}")]
-    Internal(String),
-}
-```
-
-**Impact:** Callers cannot programmatically distinguish between "not found", "validation error", "database connection lost", or "permission denied". All errors must be string-matched, which is fragile and non-idiomatic Rust.
-
-**Fix:** Introduce proper error enums for each layer (e.g., `RepositoryError`, `ServiceError`) and add typed variants. Implement `From` conversions and `std::error::Error` for compatibility.
+**Fix:** Introduce typed error enums per layer (`RepositoryError`, `ServiceError`, `HttpError`) with `From` conversions.
 
 ---
 
 ### C-013: No CI/CD pipeline
 
-**Location:** Entire repository  
-**Type:** Quality assurance
+No GitHub Actions, no automated tests, no linting, no formatting checks. 10 separate `Cargo.lock` files across independent workspaces.
 
-There is no CI/CD configuration of any kind:
-- No GitHub Actions workflows
-- No GitLab CI configuration
-- No pre-commit hooks
-- No automated test runs
-- No automated linting or formatting checks
-
-Additionally, there is no root-level `Cargo.toml` workspace. The project has 10 separate `Cargo.lock` files across independent workspaces, creating dependency version drift.
-
-**Impact:** Every commit is unverified. Breaking changes, compilation errors, and test failures can be committed without detection.
-
-**Fix:** Create a workspace-level `Cargo.toml`, add CI configuration (GitHub Actions recommended), and set up basic checks: `cargo check`, `cargo test`, `cargo clippy`, `cargo fmt --check`.
-
----
-
-### C-014: No request timeout on TCP server
-
-**Location:** `repos/framework/crates/framework/src/server/mod.rs`  
-**Type:** Operational / Resource leak
-
-The synchronous TCP server has no request timeout. A client can open a TCP connection, send the HTTP request line very slowly (e.g., 1 byte per minute), and hold the connection (and its thread) indefinitely. This is a resource exhaustion vector.
-
-The async server (`server_async.rs`) also lacks `tokio::time::timeout`.
-
-**Impact:** A single malicious or misconfigured client can exhaust the server's thread pool, causing denial of service.
-
-**Fix:** Add read timeouts using `TcpStream::set_read_timeout()` for the sync server and `tokio::time::timeout` for the async server.
+**Fix:** Create workspace `Cargo.toml`, add GitHub Actions with `cargo check`, `cargo test`, `clippy`, `fmt --check`.
 
 ---
 
 ### C-015: Unsafe blocks without safety invariants
 
-**Location:** `repos/framework/crates/framework/src/env/mod.rs:45`, `cli/output.rs:348`  
-**Type:** Memory safety
+Two `unsafe` blocks (`env/mod.rs:45`, `cli/output.rs:348`) lack documentation explaining why they are safe.
 
-Two `unsafe` blocks exist without documentation explaining why they are safe:
-
-1. `env/mod.rs:45` — `unsafe { std::env::set_var(&key, &value); }` — calling `set_var` is unsafe in multi-threaded contexts. No mutex, no synchronization comment.
-2. `cli/output.rs:348` — Windows console mode setting. No safety comment.
-
-**Impact:** Potential data races in multi-threaded environments.
-
-**Fix:** Add safety comments documenting what invariants are maintained. For `set_var`, consider moving to initialization-only (before threads spawn). Use `OnceLock` or similar synchronization.
-
----
-
-### C-016: No panic recovery middleware
-
-**Location:** Missing feature  
-**Type:** Operational
-
-If any request handler panics (e.g., `unwrap()`, `panic!()`, index out of bounds), the panic propagates to the thread level and `thread::spawn` catches it silently — but the entire connection handling thread dies without returning any response. The client hangs until timeout.
-
-```rust
-// thread::spawn in server/mod.rs — panic is silently caught
-thread::spawn(move || {
-    if let Err(e) = handle_conn(s, &router, &routes) {
-        eprintln!("  [ws] {}", e);
-    }
-    // If handle_conn panics, the panic is caught by the thread
-    // and the client connection is never closed
-});
-```
-
-**Impact:** A panic in any handler leaves the client connection open indefinitely (until OS timeout). In the sync server, this leaks a thread per panic.
-
-**Fix:** Add `std::panic::catch_unwind` around handler execution in the server's connection loop. Return a 500 Internal Server Error response if a panic is caught.
-
----
-
-### C-017: No CORS middleware
-
-**Location:** Missing feature  
-**Type:** Operational
-
-There is no built-in middleware for Cross-Origin Resource Sharing. Any application that serves a frontend from a different origin must build its own CORS middleware from scratch.
-
-**Impact:** All web applications with separate frontend origins require manual CORS header handling. This is a common source of bugs and security misconfigurations.
-
-**Fix:** Add a `CorsMiddleware` with configurable allowed origins, methods, and headers. Integrate with the existing `Middleware` trait.
-
----
-
-### C-018: No rate limit middleware
-
-**Location:** Missing feature  
-**Type:** Operational
-
-The `RateLimiter` facade exists as a standalone utility, but there is no `RateLimitMiddleware` that can be plugged into the middleware chain for route-level or global rate limiting.
-
-**Impact:** Applications must manually check rate limits in every handler. There is no way to declaratively apply rate limiting to routes.
-
-**Fix:** Create a `RateLimitMiddleware` that implements the `Middleware` trait, accepting a `RateLimiter` instance and a key extractor function.
-
----
-
-### C-019: No static file serving middleware
-
-**Location:** Missing feature  
-**Type:** Missing functionality
-
-The `Router` has no `static_files()` method. Serving static assets (CSS, JS, images) requires manually writing a handler that reads from disk for every request.
-
-**Impact:** Every application must implement its own static file handler. This is error-prone and misses optimization opportunities (caching headers, `If-Modified-Since`, directory traversal protection).
-
-**Fix:** Add a `StaticFiles` middleware or `Router::static_files()` method that serves files from a directory with proper caching headers and security checks.
-
----
-
-### C-020: No built-in HTTP client
-
-**Location:** Missing feature  
-**Type:** Missing functionality
-
-Viontin has no built-in HTTP client. Users must add `reqwest` or `ureq` as an external dependency for:
-- Service-to-service communication in microservices
-- Webhook callbacks
-- External API integration
-- The `RemoteServiceAdapter` (which currently returns `Err("not implemented")`)
-
-**Impact:** The microservices pattern (`ServiceContract` + `RemoteServiceAdapter`) is non-functional without an HTTP client. Any integration with external services requires an additional dependency.
-
-**Fix:** Add a minimal HTTP client (wrapping `ureq` or `minreq`) as an optional dependency behind a feature flag. Implement `RemoteServiceAdapter::handle()` using it.
+**Fix:** Add safety comments. For `set_var`, move to initialization-only before threads spawn.
 
 ---
 
 ### C-021: No background job queue
 
-**Location:** `repos/framework/crates/framework/src/queue/mod.rs`  
+Only `SyncQueue` exists — jobs execute synchronously in the current thread. No persisted queue, no async processing.
+
+**Fix:** Implement `DatabaseQueue` using SQLite, with a background worker thread.
+
+---
+
+### D-001: Migration runner does not actually execute SQL
+
+**Location:** `viontin-orm/src/migration.rs`  
 **Type:** Non-functional feature
 
-Only `SyncQueue` exists, which executes jobs synchronously in the current thread:
+`Migrator::run()` only prints `executing...` and marks migrations as applied in memory. It never calls `Connection::execute()` against the database. There is no `_migrations` tracking table.
 
-```rust
-impl Driver for SyncQueue {
-    fn push(&self, job: Box<dyn Job>) -> Result<(), String> {
-        job.handle()  // executes immediately, blocks caller
-    }
-    fn later(&self, _delay_secs: u64, job: Box<dyn Job>) -> Result<(), String> {
-        self.push(job)  // ignores delay
-    }
-}
-```
+**Impact:** The migration system is entirely decorative. Developers must run schema changes manually.
 
-There is no persisted queue (database, file, or Redis-backed). Jobs cannot survive process restarts. Scheduled/delayed jobs execute immediately.
-
-**Impact:** Background job processing is non-functional for production use. The scheduler is useless without a queue that can persist and delay jobs.
-
-**Fix:** Implement a `DatabaseQueue` that stores jobs in SQLite (or other database via ORM) and processes them asynchronously in a background thread. Add proper delay support.
+**Fix:** Have `Migrator::run()` execute `migration.up` SQL via `Connection::execute()`. Create a `_migrations` tracking table automatically. Check already-applied migrations before running.
 
 ---
 
-### C-022: No request tracing or correlation ID
+### D-002: Error messages are not actionable
 
-**Location:** Missing feature  
-**Type:** Observability
+When an error occurs, the framework returns generic messages (`"Internal error"`, `"Not found"`) with no indication of:
+- Where the error originated (file:line)
+- What the developer should do to fix it
+- The SQL query that failed (for DB errors)
+- The request context
 
-There is no request ID generation, no `tracing` spans, and no way to correlate log entries with specific requests. In a multi-threaded server, log entries from concurrent requests are interleaved with no way to tell which request produced which log.
-
-**Impact:** Debugging production issues is extremely difficult without request correlation.
-
-**Fix:** Integrate the `tracing` crate for span-based observability, generate request IDs in middleware, and attach them to log entries.
-
----
-
-### C-023: No CORS, no panic recovery, no static files — missing middleware trio
-
-These three are listed above as individual issues. Combined, they represent a significant gap in production readiness — every application needs them and must build them from scratch.
+**Fix:** Implement `ErrorReport` with `solution: Option<String>`, `file: SourceLocation`, and `hints: Vec<String>`. Wire into `FrameworkError` and HTTP error responses.
 
 ---
 
 ## 🟡 Major Issues
 
-### M-001: 19+ clippy warnings across codebase
-
-**Location:** All crates  
-**Type:** Code quality
-
-Running `cargo clippy` reveals warnings including:
-- `duplicated_attributes` — duplicate `#[cfg]` annotations
-- `multiple_bound_locations` — trait bounds in multiple places
-- `type_complexity` — over-complex nested types
-- `neg_cmp_op_on_partial_ord` — inverted comparison on floating-point
-- `unused_imports` — dead imports
-- `unused_mut` — unnecessary mutability
-- `unused_assignments` — values assigned but never read
-
-**Fix:** Run `cargo clippy --fix` and manually review remaining warnings.
-
----
-
 ### M-002: `#[allow(dead_code)]` annotations mask unused code
 
-**Location:** `project.rs`, `schema.rs`, `check.rs`, and more  
-**Type:** Code quality
+At least 9 annotations across `project.rs`, `schema.rs`, `check.rs`. Examples: `Blueprint::create`, `Migrator::connection`, `exec_cargo_allow_fail`.
 
-At least 9 `#[allow(dead_code)]` annotations exist across the codebase. Each masks genuinely unused code (fields, functions, types) that should either be removed, made public, or prefixed with underscore.
-
-**Examples:**
-- `Blueprint::create` field — never read
-- `Migrator::connection` field — never read
-- `exec_cargo_allow_fail` function — never called
-
-**Fix:** Audit each `#[allow(dead_code)]` annotation. Remove unused code or add justified usages.
+**Fix:** Audit each annotation. Remove unused code or add justified usages.
 
 ---
 
 ### M-003: Global singletons prevent testability
 
-**Location:** Multiple modules  
-**Type:** Architecture
+Framework relies on `OnceLock`/`Mutex` singletons (`REGISTRY`, `GLOBAL_LOGGER`, `GLOBAL_CONFIG`, `ROUTE_HANDLERS`, etc.) that cannot be reset between tests.
 
-The framework relies on global `OnceLock` / `Mutex` singletons throughout:
-
-| Singleton | Module | Purpose |
-|-----------|--------|---------|
-| `REGISTRY` | `domain/mod.rs` | Domain definitions |
-| `GLOBAL` | `rate/mod.rs` | Rate limiter state |
-| `GLOBAL_LOGGER` | `log/mod.rs` | Logger |
-| `GLOBAL` | `config/mod.rs` | Config repository |
-| `ROUTE_HANDLERS` | `route/mod.rs` | Route handler storage |
-| `HANDLER` | `errors/mod.rs` | Error handler |
-| `GLOBAL` | `gem/mod.rs` | Gem registry |
-
-These singletons:
-- Cannot be reset between tests, causing test pollution
-- Create hidden dependencies that aren't visible in function signatures
-- Make parallel test execution impossible
-- Prevent multiple independent instances of the framework
-
-**Fix:** Migrate from global singletons to dependency injection using the `Application` container. Provide test helpers for creating isolated instances.
-
----
-
-### M-004: Feature flags all off by default
-
-**Location:** `repos/framework/crates/viontin/Cargo.toml`  
-**Type:** User experience
-
-```toml
-[features]
-default = []
-```
-
-The `default = []` means installing `viontin` as a dependency gives the user a minimal framework with no ORM, no domain-driven design, and no async support. Users adding `viontin` expect a batteries-included experience.
-
-**Impact:** New users who follow "quick start" guides that use ORM features will get compilation errors because the `orm` feature is not enabled by default.
-
-**Fix:** Change `default = ["orm"]` or document prominently that features must be enabled.
+**Fix:** Migrate to DI via `Application` container. Provide test helpers for isolated instances.
 
 ---
 
 ### M-005: `framework::errors` and `framework::error` coexist confusingly
 
-**Location:** `repos/framework/crates/framework/src/error/`, `repos/framework/crates/framework/src/errors/`  
-**Type:** Architecture / Dead code
+Two parallel error modules that don't interoperate. `errors/mod.rs` defines a handler registration system never called.
 
-The framework has two parallel error modules:
-- `error/mod.rs` — defines `FrameworkError`, `Result<T>`, `SourceLocation`
-- `errors/mod.rs` — defines `HttpError`, `ErrorReport`, error handler infrastructure
-
-These two modules:
-- Do not interoperate — `HttpError` doesn't use `FrameworkError`
-- Overlap in concerns — both handle "errors"
-- `errors/mod.rs` defines a registration system (`set_handler`) that is never called
-
-**Fix:** Either consolidate into a single error module, or clearly document the separation. Remove dead code in `errors/mod.rs`.
+**Fix:** Consolidate into a single error module or document the separation. Remove dead code.
 
 ---
 
 ### M-006: Multiple Cargo.lock files cause dependency drift
 
-**Location:** All crate directories  
-**Type:** Build / Reproducibility
+10+ separate lockfiles across independent workspaces can resolve same dependency to different versions.
 
-At least 10 separate `Cargo.lock` files exist across the project. Different workspaces may resolve the same dependency to different versions.
-
-**Fix:** Create a root workspace `Cargo.toml` that includes all crates, producing a single `Cargo.lock`.
+**Fix:** Create a root workspace `Cargo.toml` with a single `Cargo.lock`.
 
 ---
 
 ### M-007: Edition 2024 constrains MSRV
 
-**Location:** All `Cargo.toml` files  
-**Type:** Compatibility
+Requires Rust 1.85+ (stable February 2025). LTS Linux distributions may ship older Rust versions.
 
-All crates use `edition = "2024"`, which requires Rust 1.85+. This is very recent (stable February 2025). Users on:
-- Ubuntu 24.04 LTS repositories (typically ship Rust 1.75 or so)
-- Enterprise Linux (RHEL 9 — Rust 1.71)
-- Older CI environments
-
-...cannot compile the project without manual `rustup` updates.
-
-**Fix:** Consider `edition = "2021"` for broader compatibility, or document the MSRV requirement prominently.
+**Fix:** Consider `edition = "2021"` or document MSRV prominently.
 
 ---
 
-### M-008: Rocket-style route macro referenced but non-functional
+### M-009: `serde` optional in viontin-orm but needed for JSON responses
 
-**Location:** Documentation references  
-**Type:** Documentation / Feature gap
+If `serde` is not enabled, common use cases (returning query results as JSON) require manual serialization.
 
-The `route::get(...)`, `route::post(...)` functions track only metadata (handler name + source location) — they do NOT register executable handler functions. The actual handler registration requires separate `route::register_handler()` calls.
-
-**Impact:** Developers following documentation examples will find that routes are tracked but never served.
-
-**Fix:** Either integrate the handler functions with the metadata registration, or clarify the documentation that metadata-only registration requires a manual `extend_from_registry()` call.
+**Fix:** Enable `serde` by default or document `features = ["serde"]`.
 
 ---
 
-### M-009: Serde optional in viontin-orm but needed for JSON responses
+### D-003: `make:*` scaffolding does not update `mod.rs`
 
-**Location:** `repos/orm/crates/viontin-orm/Cargo.toml`  
-**Type:** Usability
+Each `make:controller User` creates `src/controllers/user.rs` but does not add `pub mod user;` to `src/controllers/mod.rs`. Developer must do it manually.
 
-`serde` is optional in the ORM crate but is needed for `Row` serialization and `Page<T>` serialization. If serde is not enabled, common use cases (returning query results as JSON from controllers) require manual serialization.
-
-**Fix:** Enable `serde` by default or add a dedicated serialization feature.
+**Fix:** After writing the scaffold file, check if the parent `mod.rs` exists. If not, create it. If it exists and doesn't have the entry, append `pub mod snake;`.
 
 ---
 
-### M-010: SyncQueue `later()` ignores delay
+### D-004: `make:migration` command missing
 
-**Location:** `repos/framework/crates/framework/src/queue/mod.rs`  
-**Type:** Logic bug
+No CLI command to scaffold migration files with timestamps. Developers must write raw SQL and create files manually.
 
-The `SyncQueue` driver ignores the delay parameter in `later()`. Jobs scheduled with a delay execute immediately.
+**Fix:** Add `make:migration create_users_table` that generates a timestamped `YYYYMMDDHHMMSS_create_users_table.rs` file in `src/migrations/` with up/down template.
 
-**Fix:** Either implement actual delayed execution or document that `SyncQueue` does not support delayed jobs.
+---
+
+### D-005: No query logging / profiling
+
+Developers cannot see what SQL queries are executed, how long they take, or how many queries per request. Database optimization is blind.
+
+**Fix:** Add a `QueryLogMiddleware` or `DB::listen()` callback that logs queries + duration at `debug` level. Also expose via a `Profiler`-style report.
+
+---
+
+### D-006: No seeder / factory system
+
+Developers have no way to generate test data. They must write SQL by hand or use external tools.
+
+**Fix:** Add `Seeder` trait with `run(conn)`, `make:seeder UserSeeder`, and `artisan db:seed`-like command.
+
+---
+
+### D-007: No HTTP testing helper
+
+Testing endpoints requires spinning up a real server. No `$this->get('/users')` style test client.
+
+**Fix:** Add `TestClient` to viontest that creates mock requests and processes them through the router without a TCP listener.
 
 ---
 
@@ -496,129 +177,113 @@ The `SyncQueue` driver ignores the delay parameter in `later()`. Jobs scheduled 
 
 ### m-001: Missing doc comments on public APIs
 
-**Location:** Multiple files — `collection/mod.rs`, `queue/mod.rs`, `storage/mod.rs`, `http/mod.rs`, and others  
-**Type:** Documentation
+Many public structs, enums, and methods lack `///` doc comments (`Collection`, `Queue`, `Storage`, `Response` builder methods).
 
-Many public structs, enums, and methods lack `///` doc comments.
-
-**Fix:** Add doc comments to all public items.
+**Fix:** Add doc comments to all public items incrementally.
 
 ---
 
 ### m-002: READMEs reference 404 GitHub URLs
 
-**Location:** `docs/README.md`, all `repos/*/README.md`  
-**Type:** Documentation
+All README files point to `https://github.com/viontin/docs` which returns 404.
 
-README files reference `https://github.com/viontin/docs` which returns 404.
-
-**Fix:** Update URLs to point to actual locations.
+**Fix:** Update or remove URLs.
 
 ---
 
 ### m-003: No root `.gitignore`
 
-**Location:** Root directory  
-**Type:** Repository hygiene
-
-**Fix:** Add a root `.gitignore` with standard Rust ignores.
+**Fix:** Add root `.gitignore` with standard Rust ignores.
 
 ---
 
 ### m-004: No `rustfmt.toml` or formatting guarantee
 
-**Location:** Entire repository  
-**Type:** Code quality
-
-**Fix:** Add `rustfmt.toml`, format the entire codebase, and enforce in CI.
+**Fix:** Add `rustfmt.toml`, format entire codebase, enforce in CI.
 
 ---
 
 ### m-005: Inconsistent naming conventions
 
-**Location:** Various files  
-**Type:** Code quality
+Some modules use singular (`controller`, `service`), others plural (`events`, `errors`).
 
-Some modules use singular names (`controller`, `service`) while others use plural (`events`, `errors`).
-
-**Fix:** Audit and normalize naming.
+**Fix:** Normalize naming.
 
 ---
 
 ### m-006: License file exists but no third-party attribution
 
-**Location:** `LICENSE-MIT`  
-**Type:** Legal
-
-**Fix:** Run `cargo-deny` to generate a third-party license report.
+**Fix:** Run `cargo-deny` to generate license report.
 
 ---
 
 ### m-007: No error page rendering
 
-**Location:** `repos/framework/crates/framework/src/errors/mod.rs`  
-**Type:** User experience
+Error responses are plain text. No styled error pages for development or production.
 
-Error responses are plain text with no styled error pages for development mode.
-
-**Fix:** Add styled error pages for development (stack trace, request data) and simple pages for production.
+**Fix:** Add styled error pages.
 
 ---
 
 ### m-008: Examples compile with dead-code warnings
 
-**Location:** `examples/viontin-alpha/`  
-**Type:** Quality
+`viontin-alpha` compiles with 11 unused-struct warnings.
 
-The example app compiles with 11 warnings about unused structs and functions.
-
-**Fix:** Either use the declared items or add `#[allow(dead_code)]` with justification.
+**Fix:** Use declared items or add `#[allow(dead_code)]` with justification.
 
 ---
 
 ## 🔵 Suggestions
 
-### S-001: Add tracing/OpenTelemetry integration
+### S-001: Add hot reload / auto-rebuild for `viontin dev`
 
-Integrate the `tracing` crate for structured, async-aware diagnostics with span-based instrumentation.
+Currently `viontin dev` does not watch files. Developer must Ctrl+C and rerun. Integrate with `notify` (already in deps) for file watching.
 
-### S-002: Add metrics with `metrics` crate
+### S-002: Add debug toolbar for development
 
-Add counters, histograms, and gauges for request count, latency, database query time, cache hit/miss ratios, and queue depth.
+Laravel Debugbar-style toolbar showing queries, memory, timing, request data. Injected into HTML responses in development mode.
 
-### S-003: Add property-based testing
+### S-003: Add project scaffolding (`viontin new --with`)
 
-Use `proptest` or `quickcheck` for property-based testing of core components.
+`viontin new my-app --with auth,api,admin` — generate complete project with auth scaffold, API structure, admin panel.
 
-### S-004: Add fuzz testing for HTTP parser
+### S-004: Add tracing/OpenTelemetry
 
-The hand-written HTTP/1.1 parser is a critical surface for security vulnerabilities. Add fuzz testing using `cargo-fuzz`.
+Integrate `tracing` crate for span-based observability across async and sync boundaries.
 
-### S-005: Add Redis cache driver
+### S-005: Add metrics with `metrics` crate
 
-Only `MemoryCache` and `FileCache` exist. Add `RedisCache` implementing `CacheDriver`.
+Counters, histograms, gauges for requests, queries, cache, queue depth.
 
-### S-006: Add AES-256-GCM encryption
+### S-006: Add property-based testing with `proptest`
 
-Replace or supplement `SimpleEncrypter` with a proper AES-256-GCM implementation using the `aes-gcm` crate.
+Test core invariants: QueryBuilder SQL generation, cache consistency, event ordering.
 
-### S-007: Add connection pooling to HTTP server
+### S-007: Add fuzz testing for HTTP parser
 
-Add HTTP/1.1 keep-alive with a connection pool for better performance.
+The hand-written HTTP/1.1 parser is a critical security surface. Add `cargo-fuzz` targets.
 
-### S-008: Default features should include `orm`
+### S-008: Add Redis cache driver
 
-Consider `default = ["orm"]` in the meta-crate.
+`MemoryCache` and `FileCache` exist but no `RedisCache`. Production deployments need Redis.
 
-### S-009: Add HTTP/2 support
+### S-009: Add connection pooling to HTTP server
 
-The hand-written HTTP/1.1 server may benefit from HTTP/2 support for performance.
+Thread-per-connection is simple but wasteful. Add keep-alive with connection reuse, or document that a reverse proxy (nginx, caddy) is recommended.
+
+### S-010: Add auth scaffolding + proper password hashing
+
+`make:auth` — scaffold login/register/reset-password routes, controllers, and views. Replace `SimpleHasher` with bcrypt or argon2 via a dedicated gem.
+
+### S-011: Add `Gate` / `Policy` authorization system
+
+Middleware-level authorization: `Authorize::new("admin")`, `Policy` trait with `before/after` hooks.
 
 ---
 
 ## How to Read This Document
 
-Issues are listed in descending severity order. Within each severity level, issues are roughly ordered by impact.
+Issues are listed in descending severity order. Within each severity level, roughly ordered by impact.
 
 **Legend:**
 - 🔴 = Must fix before any production use
