@@ -6,6 +6,8 @@
 
 Viontin includes a full-featured HTTP server with routing, middleware, WebSocket support, sessions, CSRF protection, and more — all with zero external HTTP dependencies.
 
+Two UI strategies are supported out of the box: **InertiaJS** for server-driven SPAs with your favorite frontend framework, and **Webview** for native desktop applications.
+
 ---
 
 ## 1. Routing
@@ -333,7 +335,143 @@ fn handler(_req: Request) -> Response {
 
 ---
 
-## 11. Complete Example
+## 11. UI Strategies
+
+Viontin supports two approaches for building user interfaces, each suited to different use cases.
+
+### 11.1 InertiaJS — Server-Driven SPA
+
+[InertiaJS](https://inertiajs.com/) lets you build single-page applications using classic server-side routing with React, Vue, or Svelte frontends — without building an API.
+
+**How it works:**
+1. First request: server renders full HTML with embedded `data-page` JSON
+2. Subsequent navigations: Inertia client makes XHR requests, server returns JSON
+3. No API endpoints needed — routes return page components directly
+
+**Setup:**
+
+```toml
+[dependencies]
+viontin-gem-inertia = { path = "../../repos/gems/crates/viontin-gem-inertia" }
+```
+
+```rust
+use viontin::boot;
+use viontin::gem::GemBuilder;
+use viontin_gem_inertia::{Inertia, inertia};
+
+fn main() {
+    boot()
+        .gem(Inertia::load().entry("resources/views/app.html"))
+        .get("/", |_| inertia("Home", json!({ "title": "Welcome" })))
+        .serve(":3000");
+}
+```
+
+**Root view template** (`resources/views/app.html`):
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>My App</title>
+    <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+    <div id="app" data-page="{{data-page}}"></div>
+    <script src="/assets/app.js" defer></script>
+</body>
+</html>
+```
+
+The `{{data-page}}` placeholder is replaced at compile time with the Inertia page JSON on full-page loads.
+
+**Request flow:**
+
+```
+Browser                           Viontin
+  │                                  │
+  ├── Initial visit ────────────────►│
+  │                                  ├── Render HTML + data-page JSON
+  │◄─────────────────────────────────┤
+  │                                  │
+  ├── SPA navigation ──────────────►│
+  │   X-Inertia: true                │
+  │                                  ├── Return JSON
+  │◄─────────────────────────────────┤  { component, props, url, version }
+```
+
+### 11.2 Webview — Native Desktop
+
+The webview gem wraps your Viontin HTTP server in a native desktop window using `wry` + `tao`. The frontend can be any HTML/CSS/JS application served by the embedded server.
+
+**Setup:**
+
+```toml
+[dependencies]
+viontin-gem-webview = { path = "../../repos/gems/crates/viontin-gem-webview" }
+```
+
+**System dependencies (Linux):**
+```bash
+sudo apt install libwebkit2gtk-4.1-dev libsoup-3.0-dev
+```
+
+**Basic usage:**
+
+```rust
+use viontin::boot;
+use viontin_gem_webview::WebviewGem;
+
+fn main() {
+    boot()
+        .gem(WebviewGem::load().title("My App").size(1024, 768))
+        .get("/", |_| Response::html("<h1>Hello from Desktop!</h1>"))
+        .entry(|ctx| {
+            viontin_gem_webview::launch(ctx.ws_server, ":3000");
+        })
+        .run();
+}
+```
+
+**Rust ↔ JavaScript communication:**
+
+Send messages from JavaScript:
+
+```javascript
+window.ipc.postMessage(JSON.stringify({
+    type: "command",
+    payload: "cache:clear"
+}));
+```
+
+Handle them in Rust:
+
+```rust
+use viontin_gem_webview::launch_with_ipc;
+
+launch_with_ipc(ws_server, ":3000", Some(Box::new(|msg| {
+    println!("[webview] JS says: {}", msg);
+})));
+```
+
+### 11.3 Choosing a Strategy
+
+| Criteria | InertiaJS | Webview |
+|----------|-----------|---------|
+| **Frontend tech** | React, Vue, Svelte | Any (HTML, JS, or WASM) |
+| **Rendering** | Server-driven SPA | Client-side |
+| **Desktop support** | Via browser | Native window |
+| **API required** | No | Optional |
+| **Mobile support** | Responsive web | Desktop only |
+| **Setup complexity** | Low (gem + npm) | Medium (system deps) |
+
+**Recommendation:** Use **InertiaJS** for web applications where you want a modern SPA experience without building a separate API. Use **Webview** for desktop applications that need native window management.
+
+---
+
+## 12. Complete Example
 
 ```rust
 use viontin::prelude::*;

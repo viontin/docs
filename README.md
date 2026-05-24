@@ -21,7 +21,7 @@
 | **Architecture** | [architecture](architecture), [architecture-patterns](architecture-patterns), [domain-driven](domain-driven), [service](service), [controller](controller) |
 | **Validation** | [validation](validation) |
 | **Files** | [filesystem](filesystem), [storage](storage) |
-| **Dev Tools** | [logging](logging), [debugging](debugging), [testing](testing), [cli](cli), [tui](tui), [known-issues](known-issues) |
+| **Dev Tools** | [logging](logging), [debugging](debugging), [testing](testing), [cli](cli), [tui](tui), [known-issues](known-issues), [comparisons](comparisons) |
 | **Extensions** | [gems-system](gems-system), [gems/inertia](gems/inertia), [gems/tailwind](gems/tailwind), [gems/gem-creator](gems/gem-creator) |
 | **Standalone** | [viontest](viontest) |
 
