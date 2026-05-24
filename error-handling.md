@@ -11,14 +11,14 @@ Core error types and HTTP error handling.
 ## FrameworkError
 
 ```rust
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum FrameworkError {
     #[error("{0}")]
     Internal(String),
 }
 ```
 
-Unified error type used across all framework modules. Currently wraps string messages; will be expanded with typed variants.
+Unified error type used across all framework modules. Currently has a single `Internal` variant wrapping string messages; planned to be expanded with typed variants (`Config`, `Io`, `Parse`, `Validation`, `Authentication`, `NotFound`, etc.) in future releases.
 
 ```rust
 use viontin::prelude::*;
@@ -81,16 +81,20 @@ println!("{}", loc);
 
 ---
 
-## HTTP Error Handling
+## HTTP Error Handling (Planned)
 
-The `errors` module (plural) provides HTTP-specific error types and rendering:
+HTTP-specific error types (`HttpError`, `ErrorReport` with actionable solutions) are planned for future releases. Currently, error responses are constructed manually using `Response::html(...).status(...)`:
 
 ```rust
-// Framework returns proper HTTP status codes
 fn handler(_req: Request) -> Response {
     // Database error → 500
+    Response::html("<h1>Error</h1><p>Database error</p>").status(StatusCode::SERVER_ERROR)
+
     // Not found → 404
+    Response::html("<h1>Not Found</h1>").status(StatusCode::NOT_FOUND)
+
     // Validation → 400
+    Response::html("<h1>Bad Request</h1>").status(StatusCode::BAD_REQUEST)
 }
 ```
 

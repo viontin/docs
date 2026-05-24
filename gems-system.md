@@ -2,7 +2,9 @@
 
 > **Experimental Project** — This is an experimental project under active development. Not recommended for production use.
 
-Gems are plugins that extend Viontin at build time and runtime. They can generate assets, register middleware, add CLI commands, and hook into the application lifecycle.
+Gems are plugins that extend Viontin at build time and runtime via Rust trait implementations. They can generate assets, register middleware, add CLI commands, and hook into the application lifecycle.
+
+> **Planned:** WASM-based plugin loading for dynamically compiled gems.
 
 ---
 
@@ -174,7 +176,7 @@ pub trait GemFacade: Debug + Send + Sync {
 ### GemBinding — Automatic Wiring
 
 ```rust
-pub trait GemBinding: GemFacade + GemBuilder {
+pub trait GemBinding: GemFacade {
     fn gem_middlewares(&self) -> Vec<Box<dyn Middleware>> { vec![] }
     fn gem_providers(&self) -> Vec<Box<dyn ServiceProvider>> { vec![] }
     fn gem_commands(&self) -> Vec<Box<dyn Command>> { vec![] }

@@ -127,16 +127,18 @@ The API never changes. Only the constructor. The same pattern applies to session
 
 ### Plugin System (Gems)
 
-When the framework itself isn't enough, you extend it via Gems — WASM-based plugins that hook into the build lifecycle:
+When the framework itself isn't enough, you extend it via Gems — Rust plugins that hook into the build lifecycle:
 
 ```rust
 boot()
     .gem(Tailwind::load())           // CSS at build time
-    .gem(MyEncryptionGem::load())    // AES via a gem
+    .gem(MyEncryptionGem::load())    // custom encryption
     .gem(MyImageGem::load())         // transform at deploy time
 ```
 
-Gems integrate at the `before_build` and `after_build` phases — they can process assets, generate code, validate configuration, or run external tools — all without forking the framework.
+Gems integrate at the `before_build` and `after_build` phases — they can process assets, register middleware, add CLI commands, validate configuration, or run external tools — all without forking the framework.
+
+> **Planned:** WASM-based plugin loading for dynamically compiled gems.
 
 ### Architectural Testing
 
@@ -155,7 +157,7 @@ assert!(result.passed(), "Architecture violations found");
 
 Rules are code. They live in your test suite. They run in CI. They prevent drift without manual code reviews.
 
-### Multi-Driver ORM
+### Standalone Multi-Driver ORM
 
 ```toml
 # Switch from SQLite to PostgreSQL:
@@ -164,7 +166,7 @@ Rules are code. They live in your test suite. They run in CI. They prevent drift
 # Done.
 ```
 
-The ORM follows the same principle as facades — core traits with driver-specific implementations. Models, migrations, schemas, and relations are defined once and work across all supported databases.
+The ORM follows the same principle as facades — core traits with driver-specific implementations. It is fully standalone with zero framework dependencies. No active-record Model layer — use the query builder directly to avoid architecture lock-in. Queries, schemas, and migrations work across all supported databases.
 
 ---
 
@@ -220,15 +222,26 @@ pub const DEFINITION: Domain = Domain::new("billing")
 
 The `domain!` macro is syntactic sugar, not a new language. Every structural concept maps directly to a Rust struct, trait, or function.
 
-### No Proc Macros
+### Minimal Proc Macros
 
-Zero custom derive macros. Zero attribute macros. The framework uses:
+The framework keeps proc-macros to an absolute minimum — only two attribute macros exist (`#[domain]` and `#[domain_event]`), both behind the optional `domain` feature flag. There are zero custom derive macros.
+
+The framework primarily uses:
 - Regular Rust traits for extension
 - `include_str!` for content embedding
 - `TypeId` for the DI container
 - Regex for architecture scanning
 
 Proc macros add compilation time, obscure control flow, and create tooling friction. They are avoided unless there is no alternative.
+
+### No Model/Repository Lock-In
+
+Viontin's ORM provides a Laravel Eloquent-style **Query Builder** — not an active-record Model layer. Developers use `QueryBuilder::table(&conn, "users")` directly, without implementing a `Model` trait. This means:
+
+- No forced architecture pattern (active record, repository, DAO — choose your own)
+- Queries return raw `Row` objects that you can map to any struct
+- The ORM is a **standalone crate** with zero framework dependencies
+- Use it with or without the rest of Viontin
 
 ### No Code Generation
 
@@ -241,8 +254,8 @@ Scaffolding creates files on disk. Architecture checking scans existing code. Th
 ### Debugging Is a First-Class Feature
 
 ```rust
-dump!(user);         // prints: src/routes/users.rs:42 → User { id: 1, name: "Alice" }
-dd!(request);        // same as dump, but exits immediately
+dump(&user);         // prints: src/routes/users.rs:42 → User { id: 1, name: "Alice" }
+dd(&request);        // same as dump, but exits immediately
 ```
 
 `dump` and `dd` mirror the ergonomics of PHP's `var_dump` and Ruby's `puts` — a muscle-memory reflex that should be one keystroke away, not a `println!("{:?}", ...)` wrapped in `#[derive(Debug)]`.
@@ -257,7 +270,7 @@ println!("{}", p.report());  // db-query: 12.34ms
 
 ### Zero Cargo at Runtime
 
-The `viontin` CLI is a standalone binary — 33 commands, zero `cargo` invocations at runtime. No `cargo run`, no `cargo build` for `dev` mode. The CLI wraps cargo transparently for build commands, but the development server, scaffolding, inspection, and architecture checking all run without the Rust toolchain.
+The `viontin` CLI is a standalone binary — 42 commands, zero `cargo` invocations at runtime. No `cargo run`, no `cargo build` for `dev` mode. The CLI wraps cargo transparently for build commands, but the development server, scaffolding, inspection, and architecture checking all run without the Rust toolchain.
 
 ### Errors With Solutions
 
@@ -311,11 +324,11 @@ The framework is designed to track Rust's evolution. Edition 2024 is not a goal 
 |-----------|---------|-----------------|
 | **Dependency count** | Single meta-crate | 5–15 crates for similar features |
 | **HTTP networking** | Hand-written | hyper / actix / tokio |
-| **Proc macros** | Zero | Common in Rust web frameworks |
+| **Proc macros** | Minimal (2 attributes, feature-gated) | Common in Rust web frameworks |
 | **Async model** | Synchronous (threads) | Async (tokio/async-std) |
 | **Maturity levels** | Explicit (0→3) | Implicit or absent |
 | **Arch enforcement** | Built-in (arch testing + domains) | External tools only |
-| **CLI** | 33 commands, standalone binary | Usually cargo subcommand |
+| **CLI** | 42 commands, standalone binary | Usually cargo subcommand |
 | **TUI** | First-class toolkit | None or external |
 | **Plugin system** | WASM-based Gems | Usually middleware only |
 

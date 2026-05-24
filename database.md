@@ -4,7 +4,9 @@
 
 **Module:** `viontin_framework::db`
 
-The database module provides the foundation layer for all data access — connection abstractions, value types, and a fluent SQL query builder. The ORM (`viontin-orm`) builds on top of this layer.
+The database module provides the foundation layer for all data access — connection abstractions, value types, and a lightweight SQL query builder. These are built-in types that do not require `viontin-orm`.
+
+> **No vendor lock-in:** The standalone `viontin-orm` crate is completely optional. Use the framework's built-in db types, or add `viontin-orm` separately with `features = ["orm"]` on the `viontin` meta-crate, or use any other ORM entirely.
 
 ---
 
@@ -14,17 +16,23 @@ The database module provides the foundation layer for all data access — connec
 ┌──────────────────────────────────────┐
 │  Application / Service Layer          │
 ├──────────────────────────────────────┤
-│  viontin-orm (optional)              │
-│  Model  QueryBuilder(typed)  Schema  │
-├──────────────────────────────────────┤
-│  viontin_framework::db             ←│  ← you are here
+│  viontin_framework::db  (built-in)  ←│
 │  Connection  ConnectionPool          │
-│  QueryBuilder(raw)  Row  Value       │
+│  QueryBuilder (lightweight)          │
+│  Row  Value  DbConfig                │
 ├──────────────────────────────────────┤
 │  Driver Implementations              │
 │  (PgConnection / MySqlConnection /   │
 │   SqliteConnection / custom)         │
 └──────────────────────────────────────┘
+
+Optional: viontin-orm (standalone crate)
+  ┌──────────────────────────────────┐
+  │  QueryBuilder (rich, Eloquent)   │
+  │  Schema  Blueprint  Migration    │
+  │  DatabaseType  DriverCapabilities│
+  │  NoSqlConnection  DriverRegistry │
+  └──────────────────────────────────┘
 ```
 
 ---
@@ -204,9 +212,9 @@ pub struct QueryBuilder<'a> {
 ### SELECT
 
 ```rust
-use viontin_framework::db::QueryBuilder;
+use viontin_orm::QueryBuilder;
 
-let qb = QueryBuilder::new(&conn, "users");
+let qb = QueryBuilder::table(&conn, "users");
 
 let rows = qb
     .where_eq("age", 25)
@@ -225,7 +233,7 @@ SELECT * FROM users WHERE age = ? ORDER BY name ASC LIMIT 10 OFFSET 0
 ### COUNT
 
 ```rust
-let count = QueryBuilder::new(&conn, "users")
+let count = QueryBuilder::table(&conn, "users")
     .where_eq("active", true)
     .count()?;  // u64
 ```
@@ -237,7 +245,7 @@ SELECT COUNT(*) as count FROM users WHERE active = ?
 ### INSERT
 
 ```rust
-let id = QueryBuilder::new(&conn, "users")
+let id = QueryBuilder::table(&conn, "users")
     .insert(vec![
         ("name", "Alice".into()),
         ("email", "alice@example.com".into()),
@@ -253,7 +261,7 @@ INSERT INTO users (name, email, active) VALUES (?, ?, ?)
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `new(conn, table)` | `(&Connection, impl Into<String>)` | Create a query builder |
+| `table(conn, table)` | `(&Connection, &str)` | Create a query builder |
 | `where_eq(col, val)` | `(col, val)` | Add `WHERE col = ?` |
 | `order_by(col, dir)` | `(col, dir)` | Add `ORDER BY col dir` |
 | `limit(n)` | `(u64)` | Add `LIMIT n` |
@@ -261,7 +269,11 @@ INSERT INTO users (name, email, active) VALUES (?, ?, ?)
 | `get()` | `() -> Result<Vec<Row>>` | Execute SELECT |
 | `count()` | `() -> Result<u64>` | Execute COUNT |
 | `insert(data)` | `(Vec<(&str, Value)>) -> Result<i64>` | Execute INSERT |
-| `connection_ref()` | `() -> &dyn Connection` | Access inner connection |
+| `find(id)` | `(i64) -> Result<Option<Row>>` | Find by primary key |
+| `first()` | `() -> Result<Option<Row>>` | First matching row |
+| `update(data)` | `(Vec<(&str, Value)>) -> Result<u64>` | Execute UPDATE |
+| `delete()` | `() -> Result<u64>` | Execute DELETE |
+| `paginate(page, per_page)` | `(u64, u64) -> Result<Page>` | Paginate results |
 
 ---
 
@@ -299,51 +311,29 @@ fn transfer(conn: &dyn Connection, from: i64, to: i64, amount: i64) -> Result<()
 
 ## Driver Implementations
 
-The framework does not ship with built-in drivers. Driver crates implement `Connection` and `ConnectionPool`:
+The framework does not ship with built-in drivers. Driver crates implement `Connection` and `ConnectionPool` from `viontin-orm`. Each driver must also implement `database_type()` and `capabilities()` for feature discovery:
+
+```rust
+fn database_type(&self) -> DatabaseType;      // Relational, Document, KeyValue, etc.
+fn capabilities(&self) -> DriverCapabilities;  // sql, transactions, pagination, etc.
+```
+
+For NoSQL databases, implement the additional `NoSqlConnection` trait for get/set/delete operations.
 
 | Crate | Connection | ConnectionPool | Status |
 |-------|-----------|----------------|--------|
-| `viontin-orm-pg` | `PgConnection` | `PgPool` | Planned (via sqlx) |
-| `viontin-orm-mysql` | `MySqlConnection` | `MySqlPool` | Planned (via sqlx) |
-| `viontin-orm-sqlite` | `SqliteConnection` | `SqlitePool` | Planned (via rusqlite) |
+| `viontin-orm-pg` | `PgConnection` | `PgPool` | **Stub** — returns `Err("Not implemented")` |
+| `viontin-orm-mysql` | `MySqlConnection` | `MySqlPool` | **Stub** — returns `Err("Not implemented")` |
+| `viontin-orm-sqlite` | `SqliteConnection` | `SqlitePool` | **Stub** — returns `Err("Not implemented")` |
+
+> All three driver crates are currently **stubs** with trait implementations that return errors. Actual database connectivity (via sqlx for PG/MySQL, rusqlite for SQLite) is planned.
 
 ### Custom Driver
 
 You can implement `Connection` for any type:
 
 ```rust
-use viontin_framework::db::{Connection, Value, Row, DbConfig};
-
-#[derive(Debug)]
-struct MyConnection;
-
-impl Connection for MyConnection {
-    fn driver_name(&self) -> &str { "custom" }
-    fn query(&self, sql: &str, params: &[Value]) -> Result<Vec<Row>, String> {
-        // Your implementation
-        todo!()
-    }
-    fn execute(&self, sql: &str, params: &[Value]) -> Result<u64, String> {
-        // Your implementation
-        todo!()
-    }
-    fn last_insert_id(&self) -> Result<i64, String> { Ok(0) }
-    fn begin(&self) -> Result<(), String> { Ok(()) }
-    fn commit(&self) -> Result<(), String> { Ok(()) }
-    fn rollback(&self) -> Result<(), String> { Ok(()) }
-    fn is_connected(&self) -> bool { true }
-}
-
-// Use in a pool
-#[derive(Debug)]
-struct MyPool { config: DbConfig }
-
-impl ConnectionPool for MyPool {
-    fn config(&self) -> &DbConfig { &self.config }
-    fn connection(&self) -> Result<Box<dyn Connection>, String> {
-        Ok(Box::new(MyConnection))
-    }
-}
+use viontin_orm::{Connection, Value, Row, DbConfig};
 ```
 
 ---
@@ -351,12 +341,12 @@ impl ConnectionPool for MyPool {
 ## Complete Example
 
 ```rust
-use viontin_framework::db::{Connection, Value, Row, QueryBuilder};
+use viontin_orm::{Connection, Value, Row, QueryBuilder};
 
 fn list_adults(conn: &dyn Connection) -> Result<Vec<(i64, String)>, String> {
-    let rows = QueryBuilder::new(conn, "users")
+    let rows = QueryBuilder::table(conn, "users")
         .where_eq("active", true)
-        .where_eq("age", 18)  // Note: multiple wheres are AND-ed
+        .where_gt("age", 18)
         .order_by("name", "ASC")
         .get()?;
 
@@ -370,7 +360,7 @@ fn list_adults(conn: &dyn Connection) -> Result<Vec<(i64, String)>, String> {
 }
 
 fn create_user(conn: &dyn Connection, name: &str, email: &str) -> Result<i64, String> {
-    QueryBuilder::new(conn, "users").insert(vec![
+    QueryBuilder::table(conn, "users").insert(vec![
         ("name", name.into()),
         ("email", email.into()),
         ("active", true.into()),
@@ -378,7 +368,7 @@ fn create_user(conn: &dyn Connection, name: &str, email: &str) -> Result<i64, St
 }
 
 fn count_active(conn: &dyn Connection) -> Result<u64, String> {
-    QueryBuilder::new(conn, "users")
+    QueryBuilder::table(conn, "users")
         .where_eq("active", true)
         .count()
 }

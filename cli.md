@@ -2,7 +2,7 @@
 
 # Viontin CLI Reference
 
-**33 commands** — zero `cargo` dependency at runtime.
+**42 commands** — zero `cargo` dependency at runtime.
 
 ---
 
@@ -21,6 +21,10 @@ The CLI is organized into five levels of maturity:
 | — | Publishing | `publish`, `update`, `install`, `uninstall`, `search` |
 | — | Code Quality | `fmt`, `clippy` |
 | 1 | Scaffolding | `make:controller`, `make:middleware`, `make:model`, `make:route`, `make:command`, `make:event`, `make:job`, `make:mail`, `make:notification`, `make:query`, `make:module` |
+| — | Architecture | `make:service`, `make:repository`, `make:view` |
+| 2 | Domains & DDD | `make:domain`, `make:aggregate`, `make:entity`, `make:value-object` |
+| — | Microservices | `make:service-contract` |
+| — | Contracts | `make:contract` |
 | 2 | Domains | `make:domain`, `inspect` (with `--domains`) |
 
 ---
@@ -204,7 +208,7 @@ These commands wrap `cargo` subcommands:
 | Command | Signature | Delegates to |
 |---------|-----------|-------------|
 | `clean` | `clean` | `cargo clean` |
-| `doc` | `doc {--open}` | `cargo doc --open` |
+| `doc` | `doc {--open}` | `cargo doc {--open}` |
 | `fix` | `fix` | `cargo fix` |
 | `bench` | `bench` | `cargo bench` |
 | `tree` | `tree` | `cargo tree` |
@@ -212,6 +216,8 @@ These commands wrap `cargo` subcommands:
 | `metadata` | `metadata` | `cargo metadata` |
 
 All require a `Cargo.toml` in the current directory.
+
+> **Note:** These commands wrap `cargo` subcommands — the `viontin` binary delegates transparently to `cargo` rather than running standalone.
 
 ---
 
@@ -363,7 +369,160 @@ Scaffolds `src/<snake>/mod.rs` with a module declaration.
 
 ---
 
-## Level 2 — Domains
+### `make:service`
+
+```
+make:service {name} {--force}
+```
+
+Scaffolds `src/services/<snake>.rs` with a service struct and `execute` method.
+
+Services encapsulate business logic and are called by controllers or other services. Part of the Repository-Service-Controller (RSC) pattern.
+
+---
+
+### `make:repository`
+
+```
+make:repository {name} {--force}
+```
+
+Scaffolds `src/repositories/<snake>.rs` with a repository struct and basic query methods.
+
+Repositories abstract database access behind a clean interface. Part of the Repository-Service-Controller (RSC) pattern.
+
+---
+
+### `make:view`
+
+```
+make:view {name} {--force}
+```
+
+Scaffolds `src/views/<snake>.html` with a basic HTML template.
+
+Views are HTML templates embeddable at compile time via `viontin::html!("views/<snake>.html")`. Part of the Model-View-Controller (MVC) pattern.
+
+---
+
+## Level 2 — Domain-Driven Design (DDD)
+
+### `make:aggregate`
+
+```
+make:aggregate {name} {--force}
+```
+
+Scaffolds `src/domain/<snake>.rs` with an aggregate root that supports event sourcing.
+
+Aggregate roots guarantee consistency boundaries within a domain and emit domain events.
+
+```rust
+// Generated aggregate
+pub struct Invoice {
+    pub id: String,
+    events: Vec<Box<dyn DomainEvent>>,
+}
+
+impl Invoice {
+    pub fn record<E: DomainEvent>(&mut self, event: E) {
+        self.events.push(Box::new(event));
+    }
+}
+```
+
+---
+
+### `make:entity`
+
+```
+make:entity {name} {--force}
+```
+
+Scaffolds `src/domain/<snake>.rs` with a domain entity.
+
+Entities have identity and can change over time. Unlike value objects, two entities with the same field values are not equal — they are distinguished by their ID.
+
+---
+
+### `make:value-object`
+
+```
+make:value-object {name} {--force}
+```
+
+Scaffolds `src/domain/<snake>.rs` with an immutable value object.
+
+Value objects encapsulate concepts with validation rules (email, money, date range). They are compared by their field values, not identity.
+
+```rust
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Email {
+    pub value: String,
+}
+```
+
+---
+
+## Level 3 — Microservices
+
+### `make:service-contract`
+
+```
+make:service-contract {name} {--force}
+```
+
+Scaffolds `src/contracts/<snake>.rs` with a service contract for microservices boundaries.
+
+Service contracts define an explicit API boundary that can be implemented in-process (modular monolith) or remotely (microservice) without changing the call site.
+
+```rust
+#[derive(Debug)]
+pub struct BillingService;
+
+impl ServiceContract for BillingService {
+    fn name(&self) -> &str { "billing" }
+    fn handle(&self, command: &str, payload: &[u8]) -> Result<Vec<u8>, String> {
+        match command {
+            "ping" => Ok(b"pong".to_vec()),
+            _ => Err(format!("Unknown command: {}", command)),
+        }
+    }
+}
+```
+
+Register:
+
+```rust
+let mut registry = ServiceRegistry::new();
+registry.add(BillingService);
+let result = registry.get("billing").unwrap().handle("ping", b"{}")?;
+```
+
+---
+
+## Level 4 — Contracts
+
+### `make:contract`
+
+```
+make:contract {name} {--force}
+```
+
+Scaffolds `src/contracts/<snake>.rs` with a general-purpose contract trait.
+
+Contracts define interfaces between components, decoupling modules and enabling testability:
+
+```rust
+/// PaymentProcessor — general-purpose contract.
+pub trait PaymentProcessor: Debug + Send + Sync {
+    fn execute(&self) -> Result<String, String>;
+}
+```
+
+---
+
+## Level 5 — Domains
 
 ### `make:domain`
 

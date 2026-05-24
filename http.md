@@ -20,7 +20,7 @@ pub struct StatusCode(pub u16);
 StatusCode::OK              // 200
 StatusCode::CREATED         // 201
 StatusCode::NO_CONTENT      // 204
-StatusCode::MOVED           // 301
+StatusCode::MOVED           // 301 (Moved Permanently)
 StatusCode::FOUND           // 302
 StatusCode::BAD_REQUEST     // 400
 StatusCode::UNAUTHORIZED    // 401

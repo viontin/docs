@@ -45,7 +45,7 @@ let cache = Cache::null();
 cache.set("key", "value", Some(3600));  // TTL: 1 hour
 let val = cache.get("key");             // Some("value")
 cache.has("key");                       // true
-cache.delete("key");                    // remove
+cache.delete("key");                    // remove (alias: forget)
 cache.clear();                          // remove all
 ```
 
@@ -96,7 +96,7 @@ fn increment(&self, key: &str, amount: i64) -> i64
 |--------|-------------|
 | `get(key)` | Retrieve a value |
 | `set(key, value, ttl)` | Store a value with optional TTL |
-| `delete(key)` | Remove a key |
+| `delete(key)` | Remove a key (also aliased as `forget` in Laravel-style usage) |
 | `has(key)` | Check if key exists and is not expired |
 | `clear()` | Remove all keys |
 | `remember(key, ttl, fn)` | Get or set via closure |

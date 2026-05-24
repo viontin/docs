@@ -113,6 +113,10 @@ fn destroy(&mut self)                                   // clear + remove from d
 | `save()` | Persist to driver |
 | `destroy()` | Clear all data and remove session |
 
+### Session ID
+
+The session ID is generated internally and currently not exposed via a public getter.
+
 ### Auto-Save
 
 `Session` implements `Drop`, so `save()` is called automatically when the session goes out of scope:
@@ -264,8 +268,10 @@ fn login(req: Request) -> Response {
 
     session.save();  // persist
 
+    // Note: session.id() is internal — use a custom session ID for cookies
+    // let sid = "session_...";
     Response::html("<h1>Logged in</h1>")
-        .cookie("session_id", &session.id())
+        .cookie("session_id", "custom_session_id")
 }
 ```
 

@@ -132,12 +132,12 @@ Response::html("content")
 StatusCode::OK                // 200
 StatusCode::CREATED           // 201
 StatusCode::NO_CONTENT        // 204
-StatusCode::MOVED_PERMANENTLY // 301
+StatusCode::MOVED             // 301
 StatusCode::FOUND             // 302
 StatusCode::BAD_REQUEST       // 400
 StatusCode::UNAUTHORIZED      // 401
 StatusCode::NOT_FOUND         // 404
-StatusCode::INTERNAL_ERROR    // 500
+StatusCode::SERVER_ERROR      // 500
 ```
 
 ---
@@ -257,7 +257,7 @@ let cache = Cache::null();
 cache.set("users_count", "1500", 3600); // TTL: 1 hour
 let count = cache.get("users_count");   // Some("1500")
 cache.has("users_count");               // true
-cache.forget("users_count");            // remove
+cache.delete("users_count");            // remove
 cache.clear();                          // remove all
 ```
 

@@ -38,6 +38,7 @@ boot()
 |---------|------|-------------|
 | Async server | `async` | Tokio-based async HTTP server |
 | Domain-Driven Design | `domain` | DDD building blocks (Domain, AggregateRoot, Repository) |
+| Viontin ORM | `orm` | Enable `viontin-orm` integration via `viontin_framework::orm` |
 
 ---
 
@@ -98,12 +99,12 @@ viontin/
 | `viontin` | Meta-crate | `framework`, `tui`, `gems`, `glob` | Unified facade: re-exports for end users, boot lifecycle, macros |
 | `viontin-framework` | Library | `serde`, `serde_json`, `thiserror`, `glob` | Core platform: all types, traits, implementations, runtime |
 | `viontin-tui` | Library | `framework`, `crossterm` (opt), `terminal_size`, `unicode-width` | Terminal toolkit: ANSI styling, interactive prompts, signature validator |
-| `viontin-cli` | Binary | `tui`, `framework`, `notify`, `regex` | CLI executable: 33 commands, project scanner |
+| `viontin-cli` | Binary | `tui`, `framework`, `notify`, `regex` | CLI executable: 42 commands, project scanner |
 | `viontin-gems` | Library | `framework`, `linkme`, `serde` (opt) | Plugin system: GemRegistry, WASM lifecycle |
-| `viontin-orm` | Library | `framework` | ORM core: Model, Schema, Migration, Relations |
-| `viontin-orm-pg` | Library | `orm`, `framework` | PostgreSQL driver |
-| `viontin-orm-mysql` | Library | `orm`, `framework` | MySQL driver |
-| `viontin-orm-sqlite` | Library | `orm`, `framework` | SQLite driver |
+| `viontin-orm` | Library (optional) | (none — standalone) | ORM core: QueryBuilder, Schema, Migration, DatabaseType, NoSqlConnection |
+| `viontin-orm-pg` | Library (optional) | `viontin-orm` | PostgreSQL driver |
+| `viontin-orm-mysql` | Library (optional) | `viontin-orm` | MySQL driver |
+| `viontin-orm-sqlite` | Library (optional) | `viontin-orm` | SQLite driver |
 
 ---
 
@@ -506,7 +507,7 @@ trait Command {
                  argument                      with default
 ```
 
-### 7.3 33 Commands
+### 7.3 42 Commands
 
 ```
 Level 0 — Core (project lifecycle)
@@ -525,10 +526,22 @@ Code Quality
 Level 1 — Scaffolding (make:*)
   make:controller   make:middleware   make:model    make:route
   make:command      make:event        make:job      make:mail
-  make:notification make:query        make:module
+  make:notification make:query        make:module   make:service
+  make:repository
 
-Level 2 — Domains
-  make:domain
+Level 2 — Domain-Driven Design (DDD)
+  make:domain         (bounded contexts)
+  make:aggregate      (aggregate roots, event sourcing)
+  make:entity         (domain entities)
+  make:value-object   (immutable value objects)
+
+Level 3 — Microservices
+  make:service-contract
+
+Level 4 — MVC Templates
+  make:view
+
+Level 5 — Inspection
   inspect (--domains, --models, --routes, --commands)
 ```
 
@@ -710,15 +723,14 @@ GemRegistry
 
 ```rust
 trait GemFacade {
-    fn name(&self) -> &str;
-    fn kind(&self) -> GemKind;
-    fn before_build(&self) -> Result<()>;
-    fn after_build(&self) -> Result<()>;
+    fn meta(&self) -> &GemMeta;
+    fn before_build(&self) -> Result<()> { Ok(()) }
+    fn after_build(&self) -> Result<()> { Ok(()) }
 }
 
-enum GemKind {
-    Simple,
-    Dynamic,   // WASM-loaded
+pub enum GemKind {
+    Integration, Platform, Database, Auth, DevTool, Theme,
+    Custom(&'static str),
 }
 ```
 
@@ -734,30 +746,36 @@ The `viontin-gem-tailwind` crate implements `GemFacade` to:
 
 ## 12. ORM Architecture
 
-### 12.1 Layer Stack
+### 12.1 Optional ORM — No Lock-In
+
+Viontin Framework has **no built-in ORM dependency**. The framework provides lightweight db types (`framework::db`) and the standalone `viontin-orm` crate is completely optional.
+
+**Three choices:**
+
+| Approach | How | Use Case |
+|----------|-----|----------|
+| **Built-in** | `framework::db` (always available) | Simple queries, no ORM needed |
+| **Standalone ORM** | `viontin-orm = { path = "..." }` | Full-featured query builder, standalone |
+| **Via framework** | `features = ["orm"]` on `viontin` | Framework + ORM convenience |
 
 ```
 ┌──────────────────────────────────────┐
-│  viontin-orm                         │
+│  viontin-orm (standalone, optional)  │
 │                                      │
-│  Model trait    Schema definitions   │
-│  Blueprint DSL  Migration runner     │
-│  Relations: HasMany, BelongsTo       │
-│  QueryBuilder (ORM-level)            │
+│  QueryBuilder (Laravel Eloquent-     │
+│    style, no model required)         │
+│  Schema  Blueprint  Migration        │
+│  DatabaseType  DriverCapabilities    │
+│  NoSqlConnection  DriverRegistry     │
 ├──────────────────────────────────────┤
-│  viontin-orm-pg   │  pg driver      │
-│  viontin-orm-mysql │  mysql driver  │
-│  viontin-orm-sqlite│  sqlite driver │
-├──────────────────────────────────────┤
-│  viontin-framework                   │
-│  Connection trait   ConnectionPool   │
-│  QueryBuilder (SQL-level)   Row/Value│
+│  Driver crates (pg, mysql, sqlite)   │
+│  (each depends on viontin-orm only)  │
 └──────────────────────────────────────┘
 ```
 
 ### 12.2 Driver Selection
 
-Drivers implement `Connection` and `ConnectionPool` traits from the framework. The ORM layers `Model`, `Schema`, `Migration`, and `Relation` on top. Switching databases means changing the driver crate in `Cargo.toml` and updating the connection config.
+Drivers implement `Connection` and `ConnectionPool` traits from `viontin-orm`. The ORM provides `QueryBuilder`, `Schema`, and `Migration` on top. Switching databases means changing the driver crate in `Cargo.toml` and updating the connection config. No model/active-record layer — use the query builder directly to avoid architecture lock-in.
 
 ---
 
@@ -766,38 +784,32 @@ Drivers implement `Connection` and `ConnectionPool` traits from the framework. T
 ### 13.1 Core Error Types
 
 ```rust
-enum FrameworkError {
-    Config(String),
-    Io(String),
-    Parse(String),
-    Validation(String),
-    Authentication(String),
-    NotFound(String),
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum FrameworkError {
+    #[error("{0}")]
     Internal(String),
 }
 ```
 
-`FrameworkError` is the unified error type across all framework modules. Each module maps its internal errors into this enum.
-
-### 13.2 HTTP Error Handling
+`FrameworkError` is the unified error type across all framework modules. It currently has a single `Internal` variant wrapping string messages — planned to be expanded with typed variants (`Config`, `Io`, `Parse`, `Validation`, `Authentication`, `NotFound`, etc.).
 
 ```rust
-struct HttpError {
-    status: StatusCode,
-    message: String,
-    report: Option<ErrorReport>,
-}
-
-struct ErrorReport {
-    title: String,
-    detail: String,
-    solution: Option<String>,
-    file: SourceLocation,
-    hints: Vec<String>,
-}
+pub type Result<T> = std::result::Result<T, FrameworkError>;
 ```
 
-The `errors` module handles rendering HTTP error pages with detailed debug information in non-production environments.
+### 13.2 HTTP Error Handling (Planned)
+
+HTTP-specific error types (`HttpError`, `ErrorReport` with actionable solutions) are planned for future releases but not yet implemented. Currently, error responses are constructed manually:
+
+```rust
+fn handler(_req: Request) -> Response {
+    // Returns a 500 page
+    Response::html("<h1>Error</h1>").status(StatusCode::SERVER_ERROR)
+
+    // Returns a 404 page
+    Response::html("<h1>Not Found</h1>").status(StatusCode::NOT_FOUND)
+}
+```
 
 ---
 
@@ -962,13 +974,13 @@ This single sequence:
 ### 19.2 Crate Dependency Table
 
 ```
-viontin
+viontin (meta-crate)
   ├── viontin-framework  (serde, serde_json, thiserror, glob)
   ├── viontin-tui        (viontin-framework, crossterm, terminal_size, unicode-width)
   ├── viontin-cli        (viontin-tui, viontin-framework, notify, regex)
   ├── viontin-gems       (viontin-framework, linkme)
-  ├── viontin-orm        (viontin-framework)
-  ├── viontin-orm-pg     (viontin-orm, viontin-framework)
-  ├── viontin-orm-mysql  (viontin-orm, viontin-framework)
-  └── viontin-orm-sqlite (viontin-orm, viontin-framework)
+  ├── [optional] viontin-orm     (standalone, no framework dependency)
+  ├── [optional] viontin-orm-pg  (viontin-orm only)
+  ├── [optional] viontin-orm-mysql (viontin-orm only)
+  └── [optional] viontin-orm-sqlite (viontin-orm only)
 ```

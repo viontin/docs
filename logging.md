@@ -14,18 +14,26 @@ Multi-channel logging with severity levels, structured output, and a global logg
 ```rust
 use viontin::prelude::*;
 
-log_info("Application started");
+log_emergency("System is shutting down");
+log_alert("Database connection pool exhausted");
+log_critical("Disk space critically low");
 log_error("Failed to connect to database");
 log_warning("Disk space low");
+log_notice("Configuration reloaded");
+log_info("Application started");
 log_debug("Query: SELECT * FROM users");
 ```
 
 Output (structured format):
 
 ```
-[2025-01-15T10:30:00Z] app.INFO: Application started
+[2025-01-15T10:30:00Z] app.EMERGENCY: System shutting down
+[2025-01-15T10:30:00Z] app.ALERT: Connection pool exhausted
+[2025-01-15T10:30:00Z] app.CRITICAL: Disk space critically low
 [2025-01-15T10:30:00Z] app.ERROR: Failed to connect to database
 [2025-01-15T10:30:00Z] app.WARNING: Disk space low
+[2025-01-15T10:30:00Z] app.NOTICE: Configuration reloaded
+[2025-01-15T10:30:00Z] app.INFO: Application started
 [2025-01-15T10:30:00Z] app.DEBUG: Query: SELECT * FROM users
 ```
 
@@ -51,9 +59,13 @@ let logger = default_logger();
 ### Methods
 
 ```rust
-logger.info("message");
+logger.emergency("message");
+logger.alert("message");
+logger.critical("message");
 logger.error("message");
 logger.warning("message");
+logger.notice("message");
+logger.info("message");
 logger.debug("message");
 logger.log(LogEntry { /* ... */ });
 ```
@@ -80,7 +92,7 @@ Level::Info.as_str();   // "INFO"
 Level::Debug.as_str();  // "DEBUG"
 ```
 
-Levels are ordered — `StdoutLog` with `min_level: Warning` will output Warning, Error, Critical, Alert, and Emergency but suppress Info, Notice, and Debug.
+Levels are ordered — `StdoutLog` with `min_level: Warning` will output Warning, Error, Critical, Alert, and Emergency but suppress Notice, Info, and Debug.
 
 ---
 
@@ -178,10 +190,14 @@ init_logger(Logger::new()
     .add_channel(StdoutLog::new(Level::Debug))
 );
 
-// Use anywhere
-log_info("started");
+// Use anywhere — all levels available
+log_emergency("system failure");
+log_alert("connection pool depleted");
+log_critical("disk space critical");
 log_error("failed");
 log_warning("warning");
+log_notice("config reloaded");
+log_info("started");
 log_debug("debug info");
 ```
 
@@ -195,7 +211,7 @@ use viontin::prelude::*;
 
 // To customize:
 boot()
-    .without::<LogProvider>()
+    .without_provider("log")
     .provider(CustomLogProvider)
     // ...
 ```
@@ -222,11 +238,12 @@ fn main() {
 
     match connect_database() {
         Ok(()) => log_info("Database connected"),
-        Err(e) => log_error(format!("Database failed: {}", e)),
+        Err(e) => log_critical(format!("Database connection failed: {}", e)),
     }
 
     log_debug("Configuration loaded");
     log_warning("Running in development mode");
+    log_notice("Using memory cache driver");
 }
 
 fn connect_database() -> Result<(), String> {

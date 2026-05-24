@@ -1,189 +1,167 @@
-> **Experimental Project** — This is an experimental project under active development. Not recommended for production use.
-
 # Validation
 
-**Module:** `viontin_framework::validator`
+**Module:** `viontin_framework::http::form_request`  
+**Trait:** `FormRequest`
 
-Input validation framework with composable validators, severity levels, and grouped validation.
+The validation system provides request authorization and input validation through the `FormRequest` trait. It is the last line of defense before data reaches your controller or service.
 
 ---
 
-## Quick Start
+## Philosophy
+
+- **Decoupled** — validation lives in dedicated types, separate from controllers.
+- **Authorization-aware** — `authorize()` runs before `validate()`.
+- **Optional** — validate inline in controllers if you prefer. `FormRequest` is pure convenience.
+- **Extensible** — override `validate()` for custom logic beyond the built-in rules.
+
+---
+
+## Trait Definition
 
 ```rust
-use viontin::prelude::*;
+pub trait FormRequest: Debug + Send + Sync {
+    /// Authorize the request. Return false to deny access (403).
+    fn authorize(&self) -> bool { true }
 
-let mut outcome = Outcome::new();
-outcome.error("E001", "Name is required");
-outcome.warning("W001", "Email is deprecated");
+    /// Validation rules as (field, rule) pairs.
+    fn rules(&self) -> Vec<(&str, &str)> { Vec::new() }
 
-if outcome.has_errors() {
-    for err in outcome.errors() {
-        println!("{}: {}", err.code, err.message);
+    /// Custom error messages for rules.
+    fn messages(&self) -> Vec<(&str, &str)> { Vec::new() }
+
+    /// Validate the request.
+    fn validate(&self, req: &Request) -> Result<(), Vec<String>>;
+
+    /// Validate and return a 422/403 response on failure.
+    fn validate_or_reject(&self, req: &Request) -> Result<(), Response>;
+}
+```
+
+---
+
+## Usage
+
+### Basic Form Request
+
+```rust
+use viontin::FormRequest;
+use viontin::fw::http::Request;
+
+pub struct CreateUserRequest;
+
+impl FormRequest for CreateUserRequest {
+    fn authorize(&self) -> bool {
+        true // anyone can register
+    }
+
+    fn rules(&self) -> Vec<(&str, &str)> {
+        vec![
+            ("name", "required|min:2"),
+            ("email", "required|email"),
+            ("password", "required|min:8"),
+        ]
     }
 }
 ```
 
----
-
-## Severity
+### In a Controller
 
 ```rust
-pub enum Severity {
-    Error,
-    Warning,
-    Info,
+fn store(req: Request) -> Response {
+    let form = CreateUserRequest;
+
+    // Returns Err(Response) on failure with proper status code
+    form.validate_or_reject(&req)?;
+
+    // Proceed — request is valid and authorized
+    // ...
 }
 ```
 
----
-
-## Finding
+### Custom Validation Logic
 
 ```rust
-pub struct Finding {
-    pub severity: Severity,
-    pub code: &'static str,
-    pub message: String,
-    pub location: Option<String>,
-}
-
-Finding {
-    severity: Severity::Error,
-    code: "E001",
-    message: "Name is required".into(),
-    location: Some("src/forms/user.rs:42".into()),
-}
-```
-
----
-
-## Outcome
-
-```rust
-pub struct Outcome {
-    pub findings: Vec<Finding>,
-}
-```
-
-### Methods
-
-```rust
-let mut outcome = Outcome::new();
-outcome.error("E001", "failed");
-outcome.warning("W001", "deprecated");
-outcome.info("I001", "note");
-outcome.add(finding);
-
-outcome.has_errors();   // bool
-outcome.errors();       // Vec<&Finding> (filtered)
-outcome.is_empty();     // bool
-outcome.merge(other);   // combine findings
-```
-
----
-
-## Validator Trait
-
-```rust
-pub trait Validator: Debug + Send + Sync {
-    fn name(&self) -> &str;
-    fn validate(&self, ctx: &Context) -> Outcome;
-}
-```
-
-```rust
-use viontin::prelude::*;
-
-#[derive(Debug)]
-struct NameValidator;
-
-impl Validator for NameValidator {
-    fn name(&self) -> &str { "name" }
-
-    fn validate(&self, ctx: &Context) -> Outcome {
-        let mut result = Outcome::new();
-        // validate based on context
-        result
+impl FormRequest for UpdateProfileRequest {
+    fn rules(&self) -> Vec<(&str, &str)> {
+        vec![
+            ("bio", "max:500"),
+            ("website", "required"),
+        ]
     }
-}
-```
 
----
+    fn validate(&self, req: &Request) -> Result<(), Vec<String>> {
+        // Run built-in rules first
+        let builtin = self.default_validate(req); // conceptual
 
-## Context
+        // Custom logic
+        let body = req.body_str();
+        let mut errors = Vec::new();
 
-```rust
-pub struct Context {
-    pub project_root: Option<String>,
-    pub source_files: Vec<String>,
-    pub config: Option<String>,
-}
-```
-
----
-
-## ValidatorGroup
-
-Run multiple validators and collect all outcomes:
-
-```rust
-use viontin::prelude::*;
-
-let group = ValidatorGroup::new()
-    .add(NameValidator)
-    .add(EmailValidator)
-    .add(CustomValidator);
-
-let ctx = Context::default();
-let outcome = group.validate_all(&ctx);
-
-if outcome.has_errors() {
-    for err in outcome.errors() {
-        println!("[{}] {}", err.code, err.message);
-    }
-}
-```
-
----
-
-## Complete Example
-
-```rust
-use viontin::prelude::*;
-
-#[derive(Debug)]
-struct RequiredFields {
-    fields: Vec<String>,
-}
-
-impl Validator for RequiredFields {
-    fn name(&self) -> &str { "required_fields" }
-
-    fn validate(&self, ctx: &Context) -> Outcome {
-        let mut result = Outcome::new();
-        for field in &self.fields {
-            if !ctx.source_files.iter().any(|f| f.contains(field)) {
-                result.warning("M001", &format!("Missing field: {}", field));
-            }
+        if body.contains("spam") {
+            errors.push("Content not allowed".into());
         }
-        result
-    }
-}
 
-fn main() {
-    let ctx = Context {
-        project_root: Some("./".into()),
-        source_files: vec!["name".into(), "email".into()],
-        config: None,
-    };
-
-    let outcome = ValidatorGroup::new()
-        .add(RequiredFields { fields: vec!["name".into(), "email".into(), "age".into()] })
-        .validate_all(&ctx);
-
-    if outcome.has_errors() {
-        eprintln!("Validation failed!");
+        if errors.is_empty() { Ok(()) } else { Err(errors) }
     }
 }
 ```
+
+### Entity-Level Validation
+
+Validation also happens at the `Entity` level via `Entity::validate()`, which is called automatically by `Repository::save()`:
+
+```rust
+impl Entity for User {
+    fn validate(&self) -> Result<(), Vec<String>> {
+        let mut errors = Vec::new();
+        if self.name.len() < 2 {
+            errors.push("Name too short".into());
+        }
+        if errors.is_empty() { Ok(()) } else { Err(errors) }
+    }
+}
+```
+
+---
+
+## Available Rules
+
+| Rule | Description | Example |
+|------|-------------|---------|
+| `required` | Field must be present and non-empty | `"name": "required"` |
+| `min:N` | Minimum length/ value | `"password": "min:8"` |
+| `max:N` | Maximum length/value | `"bio": "max:500"` |
+| `email` | Must contain `@` and `.` | `"email": "email"` |
+| `numeric` | Must parse as number | `"age": "numeric"` |
+
+Rules can be combined with `|`:
+
+```rust
+vec![
+    ("username", "required|min:3|max:50"),
+    ("age", "required|numeric|min:18"),
+]
+```
+
+---
+
+## Flow
+
+```
+Request → FormRequest::authorize()  → 403 if denied
+        → FormRequest::validate()   → 422 if invalid
+        → Controller::before()      → custom rejection
+        → Controller::action()
+        → Service::before()
+        → Repository::before_save()
+        → Entity::validate()        → last check
+        → Database write
+```
+
+---
+
+## See Also
+
+- [Entity](entity) — entity-level validation via `Entity::validate()`
+- [Controller](controller) — using FormRequest in controllers
+- [Web App](web-app) — request and response types

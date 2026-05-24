@@ -71,8 +71,9 @@ impl ServiceProvider for MailProvider {
 
 ```rust
 boot()
-    .provider(DatabaseProvider)
-    .provider(CacheProvider)
+    .withoutProvider("log")
+    .provider(CustomLogProvider)
+    // ...
 ```
 
 ### Replace a Built-in Provider
