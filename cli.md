@@ -2,7 +2,7 @@
 
 # Viontin CLI Reference
 
-**42 commands** — zero `cargo` dependency at runtime.
+**45 commands** — zero `cargo` dependency at runtime.
 
 ---
 
@@ -21,11 +21,12 @@ The CLI is organized into five levels of maturity:
 | — | Publishing | `publish`, `update`, `install`, `uninstall`, `search` |
 | — | Code Quality | `fmt`, `clippy` |
 | 1 | Scaffolding | `make:controller`, `make:middleware`, `make:model`, `make:route`, `make:command`, `make:event`, `make:job`, `make:mail`, `make:notification`, `make:query`, `make:module` |
-| — | Architecture | `make:service`, `make:repository`, `make:view` |
+| — | Architecture | `make:service`, `make:repository`, `make:view`, `make:provider` |
 | 2 | Domains & DDD | `make:domain`, `make:aggregate`, `make:entity`, `make:value-object` |
 | — | Microservices | `make:service-contract` |
 | — | Contracts | `make:contract` |
-| 2 | Domains | `make:domain`, `inspect` (with `--domains`) |
+| — | Database | `make:migration` |
+| 3 | Inspection | `inspect` (with `--models`, `--routes`, `--commands`, `--events`, `--jobs`, `--mail`, `--notifications`, `--queries`, `--domains`) |
 
 ---
 

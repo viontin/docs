@@ -2,11 +2,11 @@
 
 > **Experimental Project** — This is an experimental project under active development. APIs are unstable, documentation is incomplete, and breaking changes may occur without notice. Not recommended for production use.
 
-**Zero to One, Scale-up Easily** — from prototype to production fleet on one platform.
+**Cloud-Native Rust Framework** — build, deploy, and scale microservices, APIs, and CLI tools.
 
 ---
 
-Viontin is built on a single conviction: **a framework should accelerate you at every stage** — from the first `fn main()` to a multi-team production system — without ever forcing a rewrite.
+Viontin is built on a single conviction: **a cloud-native framework should accelerate you at every stage** — from the first `fn main()` to a multi-service production fleet — without ever forcing a rewrite.
 
 This document explains the principles that guide every design decision in the platform.
 
@@ -20,7 +20,7 @@ The distance between an empty directory and a running application should be meas
 
 ```toml
 [dependencies]
-viontin = { path = "../../products/framework/crates/viontin" }
+viontin = { path = "../../products/viontin/crates/viontin" }
 ```
 
 A single crate import unlocks the entire platform: HTTP server, CLI, TUI, config, caching, auth, events, mail, queues, scheduling, validation, i18n, storage, debugging, architectural testing. No hunting for the right combination of half-dozen crates. No version mismatch. No "will these crates work together?"

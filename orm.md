@@ -23,7 +23,7 @@ Multi-driver ORM with a Laravel Eloquent-inspired Query Builder. Pure data acces
 │                                               │
 │  pg      (PostgreSQL — stub)     │
 │  mysql   (MySQL — stub)          │
-│  sqlite  (SQLite — stub)         │
+│  sqlite  (SQLite — implemented)  │
 └──────────────────────────────────────────────┘
 ```
 
@@ -32,7 +32,7 @@ Multi-driver ORM with a Laravel Eloquent-inspired Query Builder. Pure data acces
 | `orm` | Implemented | Standalone ORM: QueryBuilder, Schema, Migration, Connection traits, DatabaseType, DriverCapabilities, NoSqlConnection |
 | `pg` | **Stub** | PostgreSQL driver (Relational, full SQL) — returns `Err("Not implemented")` |
 | `mysql` | **Stub** | MySQL driver (Relational, full SQL) — returns `Err("Not implemented")` |
-| `sqlite` | **Stub** | SQLite driver (Relational, full SQL) — returns `Err("Not implemented")` |
+| `sqlite` | **Implemented** | SQLite driver (Relational, full SQL) — rusqlite-based with bundled SQLite, WAL mode, foreign keys |
 
 ---
 

@@ -3,7 +3,7 @@
 > **Experimental Project** — This is an experimental project under active development. Not recommended for production use.
 
 **Version:** 0.1.0  
-**Tagline:** Zero to One, Scale-up Easily
+**Tagline:** Cloud-Native Rust Framework
 
 ### GemBinding — Standard Plug
 
@@ -39,21 +39,28 @@ boot()
 | Async server | `async` | Tokio-based async HTTP server |
 | Domain-Driven Design | `domain` | DDD building blocks (Domain, AggregateRoot, Repository) |
 | Viontin ORM | `orm` | Enable `orm` integration via `viontin_framework::orm` |
+| HTTP Client | `http-client` | `ureq`-based sync HTTP client for external APIs |
+| Graceful Shutdown | `shutdown` | SIGTERM/SIGINT handling (enabled by default) |
+| AES Encryption | `aes` | AES-256-GCM encryption via `aes-gcm` crate |
 
 ---
 
 ## 1. Platform Overview
 
-Viontin is a full-stack Rust application platform for building web services, CLI tools, terminal (TUI) applications, batch processing systems, and mixed-mode binaries — all within a single cohesive framework.
+Viontin is a **cloud-native Rust platform** for building microservices, APIs, CLI tools, distributed systems, and mixed-mode binaries — all within a single cohesive framework.
 
-The platform is organized as a monorepo with four independent crate families:
+The platform is organized as a monorepo with independent crate families:
 
 ```
 viontin/
 ├── products/
-│   ├── framework/         # Core platform (3 crates + meta-crate)
-│   ├── gems/              # Plugin system (WASM-based)
-│   └── orm/               # Multi-driver ORM
+│   ├── viontin/            # Core + CLI + Facade meta-crate
+│   ├── framework/          # Framework implementations & patterns
+│   ├── gems/               # Plugin system (Gems)
+│   ├── orm/                # Standalone ORM (zero framework deps)
+│   ├── viontest/           # Standalone testing framework
+│   ├── ui/                 # Future: Native UI framework (standalone)
+│   └── engine/             # Future: Game engine (standalone)
 ├── examples/
 ├── docs/
 └── scripts/
@@ -96,8 +103,9 @@ viontin/
 
 | Crate | Type | Dependencies | Purpose |
 |-------|------|-------------|---------|
-| `viontin` | Meta-crate | `framework`, `tui`, `gems`, `glob` | Unified facade: re-exports for end users, boot lifecycle, macros |
-| `framework` | Library | `serde`, `serde_json`, `thiserror`, `glob` | Core platform: all types, traits, implementations, runtime |
+| `viontin-core` | Library | `serde`, `thiserror` | Shared contracts & types: `Connection`, `Value`, `Row`, `Request`, `Response`, `Entity`, `FrameworkError` |
+| `viontin` | Meta-crate | `viontin-core`, `framework`, `tui`, `gems`, `macros`, `glob` | Unified facade: re-exports for end users, boot lifecycle, macros |
+| `framework` | Library | `viontin-core`, `serde_json`, `thiserror`, `glob`, `viontest` | Core platform: all implementations, runtime, patterns (Service, Controller, Repository) |
 | `viontin-tui` | Library | `framework`, `crossterm` (opt), `terminal_size`, `unicode-width` | Terminal toolkit: ANSI styling, interactive prompts, signature validator |
 | `viontin-cli` | Binary | `tui`, `framework`, `notify`, `regex` | CLI executable: 42 commands, project scanner |
 | `gems` | Library | `framework`, `linkme`, `serde` (opt) | Plugin system: GemRegistry, WASM lifecycle |

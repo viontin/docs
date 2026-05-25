@@ -2,7 +2,7 @@
 
 > **Experimental Project** — This is an experimental project under active development. APIs are unstable, documentation is incomplete, and breaking changes may occur without notice. Not recommended for production use.
 
-**Zero to One, Scale-up Easily** — from prototype to production fleet on one platform.
+**Cloud-Native Rust Framework** — build, deploy, and scale microservices, APIs, and CLI tools.
 
 ## Documentation Index
 
@@ -32,10 +32,13 @@
 | Async server | `async` | Tokio-based async HTTP server |
 | Domain-Driven Design | `domain` | DDD building blocks (Domain, AggregateRoot, Repository) |
 | Viontin ORM | `orm` | Integrate `orm` (standalone ORM crate) |
+| HTTP Client | `http-client` | `ureq`-based sync HTTP client for external APIs |
+| Graceful Shutdown | `shutdown` | SIGTERM/SIGINT handling (enabled by default) |
+| AES Encryption | `aes` | AES-256-GCM encryption via `aes-gcm` crate |
 
 **No vendor lock-in:** The framework works without `orm`. Use it, or any other ORM, or none at all.
 
-Viontin is a full-stack Rust application framework for building web services, CLI tools, terminal applications, and batch processing systems — all within a single, cohesive platform. It provides HTTP server, ORM, plugin system (Gems), background job processing, mail, notifications, caching, real-time TUI toolkit, architectural enforcement, and more.
+Viontin is a **cloud-native Rust framework** for building microservices, APIs, CLI tools, and distributed systems. It provides HTTP server, ORM, plugin system (Gems), background job processing, mail, notifications, caching, real-time TUI toolkit, architectural enforcement, and more — all optimized for cloud deployment.
 
 ---
 
@@ -44,27 +47,37 @@ Viontin is a full-stack Rust application framework for building web services, CL
 ```
 viontin/
 ├── products/
-│   ├── framework/          # Core framework monorepo
+│   ├── viontin/            # Core + CLI + Facade meta-crate
 │   │   └── crates/
-│   │       ├── viontin/     # Meta-crate: re-exports everything as `viontin`
-│   │       ├── framework/   # Core framework: types, traits, implementations
-│   │       ├── cli/         # CLI tool: 42 commands, zero cargo dependency at runtime
-│   │       └── tui/         # TUI toolkit: interactive prompts, ANSI styling
+│   │       ├── core/        # Shared contracts & types (zero deps: serde, thiserror)
+│   │       ├── viontin/     # Meta-crate: re-exports everything
+│   │       └── cli/         # CLI tool: 45 commands, zero cargo dependency
+│   ├── framework/          # Framework implementations & patterns
+│   │   └── crates/
+│   │       ├── framework/   # Core library: HTTP, ORM, patterns, infrastructure
+│   │       ├── macros/      # Proc macros: #[domain], #[domain_event]
+│   │       └── tui/         # TUI toolkit: prompts, styling, ANSI
 │   ├── gems/               # Plugin system (Gems)
 │   │   └── crates/
-│   │       ├── gems/           # Gem registry & WASM plugin loader
-│   │       └── tailwind/   # TailwindCSS build-time integration
-│   └── orm/                # Multi-driver ORM
-│       └── crates/
-│           ├── orm/            # ORM core: Model, Schema, Migration, Relations
-│           ├── pg/         # PostgreSQL driver
-│           ├── mysql/      # MySQL driver
-│           └── sqlite/     # SQLite driver
+│   │       ├── gems/        # Gem registry & plugin loader
+│   │       ├── inertia/     # InertiaJS SPA adapter
+│   │       ├── tailwind/    # TailwindCSS build-time integration
+│   │       └── webview/     # Desktop webview (wry + tao)
+│   ├── orm/                # Standalone ORM (zero framework deps)
+│   │   └── crates/
+│   │       ├── orm/         # ORM core: QueryBuilder, Schema, Migration
+│   │       ├── pg/          # PostgreSQL driver
+│   │       ├── mysql/       # MySQL driver
+│   │       └── sqlite/      # SQLite driver (rusqlite, bundled)
+│   ├── viontest/           # Standalone testing framework (zero deps)
+│   │   └── crates/
+│   │       └── viontest/    # Test runner, assertions, arch testing
+│   ├── ui/                 # Future: Native UI framework (standalone)
+│   └── engine/             # Future: Game engine (standalone)
 ├── examples/
 │   ├── viontin-zero/       # Minimal starter project
 │   └── viontin-alpha/      # Feature demo with TailwindCSS + serde
-├── docs/
-│   └── README.md           ← this file
+├── docs/                   # Documentation (separate repo)
 └── scripts/
     └── install.sh          # CLI installer script
 ```

@@ -1,6 +1,6 @@
 # Framework Comparisons
 
-> **Last updated:** 2026-05-24  
+> **Last updated:** 2026-05-25  
 > **Note:** Viontin is at version 0.1.0 (experimental). Comparisons reflect current state and intended design goals, not production maturity.
 
 This document compares Viontin with other modern application frameworks. The goal is to help developers understand where Viontin fits in the ecosystem and make informed choices.
@@ -11,11 +11,12 @@ This document compares Viontin with other modern application frameworks. The goa
 
 Every framework makes tradeoffs. This comparison is not about "which is better" — it is about understanding design philosophies so you can choose the right tool for your project.
 
-Viontin's design philosophy is inspired by full-stack frameworks like Laravel and Rails, but implemented in Rust with different tradeoffs:
+Viontin is a **cloud-native Rust framework** inspired by cloud-native platforms like Laravel and Rails, but implemented in Rust with different tradeoffs:
 
 - **Type safety and memory safety** at the language level
 - **Zero-cost abstractions** where possible
 - **Architectural patterns as opt-in conventions**, not forced structures
+- **Cloud-optimized** with health checks, graceful shutdown, and async support
 
 ---
 
@@ -29,7 +30,7 @@ Viontin's design philosophy is inspired by full-stack frameworks like Laravel an
 
 | Dimension | Actix-web | Viontin |
 |-----------|-----------|---------|
-| **Scope** | HTTP framework only | Full-stack platform (HTTP, CLI, TUI, ORM, scheduler, etc.) |
+| **Scope** | HTTP framework only | Cloud-native platform (HTTP, CLI, TUI, ORM, scheduler, etc.) |
 | **HTTP model** | Async, actor-based, tokio | Sync (thread-per-connection) or optional async |
 | **Routing** | Macro-based (`#[get("/")]`) and builder | Builder pattern (`boot().get("/", handler)`) |
 | **ORM** | None (bring your own) | Built-in ORM (`orm`) or BYO |
@@ -51,7 +52,7 @@ Viontin's design philosophy is inspired by full-stack frameworks like Laravel an
 
 | Dimension | Axum | Viontin |
 |-----------|------|---------|
-| **Scope** | HTTP framework only | Full-stack platform |
+| **Scope** | HTTP framework only | Cloud-native platform |
 | **HTTP model** | Async, tokio-based, tower ecosystem | Sync (default) or async (optional) |
 | **Routing** | Builder with extractors | Builder pattern |
 | **Middleware** | Tower `Layer` trait (composable) | Simple `Middleware` trait |
@@ -73,7 +74,7 @@ Viontin's design philosophy is inspired by full-stack frameworks like Laravel an
 
 | Dimension | Rocket | Viontin |
 |-----------|--------|---------|
-| **Scope** | HTTP framework | Full-stack platform |
+| **Scope** | HTTP framework | Cloud-native platform |
 | **HTTP model** | Async (tokio) | Sync (default) or async |
 | **Routing** | Attribute macros (`#[get("/")]`) | Builder pattern |
 | **DI** | Managed state with `&State<T>` | TypeId-based container |

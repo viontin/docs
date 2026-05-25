@@ -1,6 +1,6 @@
 # Known Issues
 
-> **Status:** This document catalogs all known issues, bugs, and technical debt across the Viontin project. Updated as of 2026-05-24. Resolved items have been removed.
+> **Status:** This document catalogs all known issues, bugs, and technical debt across the Viontin project. Updated as of 2026-05-25. Resolved items have been removed.
 
 Issues are categorized by severity:
 
@@ -36,7 +36,7 @@ Every trait returns `Result<_, String>`. `FrameworkError` is a single `Internal(
 
 ### C-013: No CI/CD pipeline
 
-No GitHub Actions, no automated tests, no linting, no formatting checks. 10 separate `Cargo.lock` files across independent workspaces.
+No GitHub Actions, no automated tests, no linting, no formatting checks. Multiple `Cargo.lock` files across independent workspaces.
 
 **Fix:** Create workspace `Cargo.toml`, add GitHub Actions with `cargo check`, `cargo test`, `clippy`, `fmt --check`.
 
@@ -53,6 +53,8 @@ Two `unsafe` blocks (`env/mod.rs:45`, `cli/output.rs:348`) lack documentation ex
 ### C-021: No background job queue
 
 Only `SyncQueue` exists — jobs execute synchronously in the current thread. No persisted queue, no async processing.
+
+**Status:** Partially fixed — `SyncQueue` now supports delayed jobs via `thread::spawn` with sleep.
 
 **Fix:** Implement `DatabaseQueue` using SQLite, with a background worker thread.
 
@@ -77,13 +79,11 @@ When an error occurs, the framework returns generic messages (`"Internal error"`
 **Location:** `products/framework/crates/framework/`  
 **Type:** Architecture
 
-`framework` currently bundles both **contracts** (traits, types) and **implementations** (HTTP server, middleware, caching) in a single crate. This forces consumers like `viontin-ui` (native UI framework) and `viontin-engine` (game engine) to pull the entire framework — including HTTP server, ORM integration, and middleware — when they only need basic types (config, logging, DI, Entity).
+**Status:** RESOLVED — `viontin-core` crate extracted.
 
-Meanwhile, `orm` defines its own `Value`, `Row`, `Connection` types that are parallel to `framework::db`'s types. When the `orm` feature is enabled, `framework::db` re-exports from `orm` to unify them — but this creates a fragile type compatibility layer.
+`viontin-core` now contains all contracts and shared types with minimal dependencies (`serde`, `thiserror`). The `framework` crate depends on `viontin-core` and contains all implementations.
 
-**Proposed fix:** Extract all contracts and shared types into a new `viontin-core` crate with zero or minimal dependencies.
-
-**What goes into `viontin-core`:**
+**What is in `viontin-core`:**
 
 | Category | Items |
 |----------|-------|
@@ -97,7 +97,8 @@ Meanwhile, `orm` defines its own `Value`, `Row`, `Connection` types that are par
 
 **What stays in `framework`:**
 
-| Category | Items |
+All implementations: HTTP server, middleware, caching, sessions, storage, mail, notifications, queue, scheduler, auth guards, CLI, TUI, ORM integration, domain-driven patterns, Service/Controller/Repository base classes.
+
 |----------|-------|
 | **Implementations** | HTTP server, Router, MiddlewareChain, CORS/Panic/RateLimit middleware, Boot builder, MemoryCache, FileCache, StdoutLog, MemorySession, BasicGuard, TokenBucketLimiter, SyncQueue, SimpleEncrypter, AesEncrypter |
 | **Patterns** | DefaultService, DefaultController |

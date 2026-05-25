@@ -4,30 +4,32 @@
 
 ---
 
-## Current Position: Full-Stack Web Framework
+## Current Position: Cloud-Native Framework
 
-Viontin v0.1.0 is a full-stack web application framework for Rust. This is the **entry point** — the most accessible on-ramp for new users and the foundation upon which everything else is built.
+Viontin v0.1.0 is a **cloud-native Rust framework** for building microservices, APIs, CLI tools, and distributed systems. This is the **entry point** — the most accessible on-ramp for new users and the foundation upon which everything else is built.
 
 ### What Works Today
 
 | Category | Modules |
 |----------|---------|
-| **HTTP** | Router, sync server, optional async, middleware chain, WebSocket, CSRF |
-| **Data** | QueryBuilder (Eloquent-style), SQLite driver, Schema, Migration runner, pagination |
+| **HTTP** | Router, sync server, optional async, middleware chain, WebSocket, CSRF, CORS |
+| **Data** | QueryBuilder (Eloquent-style), SQLite driver (rusqlite), Schema, Migration runner, pagination |
 | **Patterns** | Entity, Model, Repository, Service, Controller (all optional, DI-based) |
-| **CLI** | 42 scaffold commands, interactive prompts, spinner, progress bar, styling |
-| **Security** | Auth guard, session, CORS, rate limiter, CSRF, AES encryption |
-| **Messaging** | Events, queue (sync), mail, notifications, scheduler |
+| **CLI** | 45 scaffold commands, interactive prompts, spinner, progress bar, styling |
+| **Security** | Auth guard, session, rate limiter, CSRF, AES-256-GCM encryption |
+| **Messaging** | Events, queue (sync + delay), mail, notifications, scheduler |
 | **Infrastructure** | Config (JSON + env), logging, cache, storage, i18n, validation |
 | **Dev Tools** | `viontest` (zero-dep testing), `dump`/`dd` debug helpers, profiler, architecture checker |
+| **Observability** | Request tracing (X-Request-Id), query logging, health endpoints (`/healthz`, `/readyz`) |
 
 ### Why Start Here
 
-Full-stack web is the most familiar paradigm for developers. Laravel, Rails, Django, and Spring Boot proved that conventions reduce decision fatigue. Viontin follows the same principle but in Rust:
+Cloud-native is the default for modern software. Microservices, APIs, and CLI tools are the building blocks of distributed systems. Viontin follows the same principle as Laravel, Rails, and Spring Boot: conventions reduce decision fatigue, but in Rust for cloud deployment:
 
 - **Familiar patterns** lower the barrier for developers migrating from other ecosystems
 - **Zero lock-in** means projects can evolve from quick prototype to production architecture without rewriting
 - **Single dependency** eliminates the "which crate?" paralysis common in Rust
+- **Cloud-optimized** with health checks, graceful shutdown, request tracing, and async support
 
 From this foundation, Viontin expands into three directions without fragmenting the codebase.
 

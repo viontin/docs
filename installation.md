@@ -20,7 +20,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 cargo install viontin
 ```
 
-This installs the `viontin` binary — 42 commands, zero `cargo` dependency at runtime. After installation:
+This installs the `viontin` binary — 45 commands, zero `cargo` dependency at runtime. After installation:
 
 ```bash
 viontin --help
@@ -46,13 +46,14 @@ Add the meta-crate to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-viontin = { path = "path/to/products/framework/crates/viontin" }
+viontin = { path = "path/to/products/viontin/crates/viontin" }
 ```
 
 Or reference individual crates:
 
 ```toml
 [dependencies]
+viontin-core = { path = "path/to/products/viontin/crates/core" }
 framework = { path = "path/to/products/framework/crates/framework" }
 viontin-tui = { path = "path/to/products/framework/crates/tui", features = ["prompts"] }
 ```
