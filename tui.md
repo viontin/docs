@@ -1,4 +1,5 @@
 > **Experimental Project** — This is an experimental project under active development. Not recommended for production use.
+> Last updated: 2026-05-25
 
 # TUI Toolkit
 
@@ -18,10 +19,10 @@ The TUI toolkit provides building blocks for rich terminal applications — inte
 ```toml
 [dependencies]
 # All features (default)
-viontin-tui = { path = "../../products/framework/crates/tui" }
+viontin-tui = { path = "../../products/tui" }
 
 # CLI-only (no prompts)
-viontin-tui = { path = "../../products/framework/crates/tui", default-features = false }
+viontin-tui = { path = "../../products/tui", default-features = false }
 ```
 
 ---

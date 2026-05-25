@@ -1,4 +1,5 @@
 > **Experimental Project** — This is an experimental project under active development. Not recommended for production use.
+> Last updated: 2026-05-25
 
 # Mail
 
@@ -16,7 +17,8 @@ Mail (facade)
   └── Box<dyn Mailer>
         │
         ├── LogTransport     — log to stdout (development)
-        └── ArrayTransport   — in-memory (testing)
+        ├── ArrayTransport   — in-memory (testing)
+        └── SmtpTransport    — SMTP (production, feature: smtp)
 ```
 
 ---
@@ -114,6 +116,29 @@ transport.clear();
 ```
 
 Best for testing.
+
+### SmtpTransport (requires `smtp` feature)
+
+Sends emails via an SMTP server with TLS and authentication:
+
+```toml
+[dependencies]
+viontin = { features = ["smtp"] }
+```
+
+```rust
+use viontin::prelude::*;
+
+let mail = Mail::smtp("smtp.example.com:587", "user@example.com", "password");
+mail.send(&envelope).unwrap();
+```
+
+Supports:
+- TLS with native certificates (`rustls`)
+- Authentication (LOGIN, PLAIN)
+- HTML + text body
+- CC recipients
+- Custom SMTP port (587 default)
 
 ---
 

@@ -1,4 +1,5 @@
 # Roadmap
+> Last updated: 2026-05-25
 
 > **Status:** This document outlines the long-term vision for Viontin across multiple domains. It reflects direction, not commitments. Priorities shift with ecosystem evolution and community feedback.
 
@@ -56,9 +57,9 @@ The nearest-term expansion. Viontin's HTTP server, middleware, config, and CLI a
 
 **Target audience:** Platform engineers, SREs, cloud backend developers, CLI tool authors.
 
-### Pillar 2: BezelUI — Standalone Native UI Framework
+### Pillar 2: Viontin UI — Standalone Native UI Framework
 
-The webview gem (`webview` with wry + tao) provides the foundation. The full UI framework will live in a **standalone project** named [`viontin-ui`](https://github.com/viontin/bezelui), separate from Viontin core.
+The webview gem (`webview` with wry + tao) provides the foundation. The full UI framework will live in a **standalone project** named [`viontin-ui`](https://github.com/viontin/ui), separate from Viontin core.
 
 Viontin UI will start where `webview` leaves off — adding window management, declarative component DSL, and cross-platform rendering. It will consume Viontin's service layer (config, auth, logging, storage) via the `viontin` meta-crate, but will not depend on Viontin's HTTP server or ORM.
 
@@ -175,7 +176,7 @@ The Entity pattern and event sourcing from the current domain module already ali
 └─────────────────────────────────────────────────────────────┘
 ```
 
-All three projects share design philosophy and patterns. Bezelui and Viontin Engine consume Viontin as a dependency but are independent codebases.
+All three projects share design philosophy and patterns. Viontin UI and Viontin Engine consume Viontin as a dependency but are independent codebases.
 
 ---
 

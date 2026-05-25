@@ -1,213 +1,246 @@
 # Viontin Architecture
+> Last updated: 2026-05-25
 
 > **Experimental Project** — This is an experimental project under active development. Not recommended for production use.
 
-**Version:** 0.1.0  
-**Tagline:** Cloud-Native Rust Framework
+**Version:** 0.1.0
+**Tagline:** Zero to One, Scale-up Easily
 
-### GemBinding — Standard Plug
+---
 
-Gems declare what they wire into the framework via `GemBinding`:
+Viontin is a **cloud-native Rust platform** for building microservices, APIs, CLI tools, distributed systems, and mixed-mode binaries — all within a single cohesive framework. This document defines the architectural layering that makes this possible.
+
+---
+
+## 1. Layering Philosophy
+
+Viontin is not a monolithic framework. It is a **stack of layers**, each with clear responsibilities and dependency direction. Every layer depends only on layers below it — never upward.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    APPLICATION (your code)                           │
+│  routes, controllers, services, models, domains, commands            │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │              APPLICATION INFRASTRUCTURE KERNEL                │  │
+│  │  Boot Lifecycle · DI Container · Service Providers · Facades  │  │
+│  │  Config System · Error Handling · Logging · CLI Kernel        │  │
+│  │  Middleware Chain · Event System · Scheduling                  │  │
+│  └───────────────────────────┬───────────────────────────────────┘  │
+│                              │                                      │
+│  ┌───────────────────────────▼───────────────────────────────────┐  │
+│  │                    RUNTIME EXECUTION                          │  │
+│  │  HTTP Server · Router · WebSocket · File System · i18n        │  │
+│  │  Cache Drivers · Session Drivers · Storage Drivers            │  │
+│  │  Mail Transports · Notification Channels · Queue Workers      │  │
+│  └───────────────────────────┬───────────────────────────────────┘  │
+│                              │                                      │
+│  ┌───────────────────────────▼───────────────────────────────────┐  │
+│  │                    CONTRACT LAYER (Traits & Types)            │  │
+│  │  Auth · Cache · Collection · Config · Database · Env          │  │
+│  │  Events · Http · Log · Mail · Notif · Page · Queue            │  │
+│  │  Rate · Route · Schedule · Semver · Session · Storage         │  │
+│  │  Support · Validator · Testing · Error                        │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                              │                                      │
+│  ┌───────────────────────────▼───────────────────────────────────┐  │
+│  │                    CORE FOUNDATION                            │  │
+│  │  viontin-core: Shared contracts, types, FrameworkError        │  │
+│  │  serde · thiserror · serde_json                                │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Layer Definitions
+
+| Layer | Role | Depends On |
+|-------|------|-----------|
+| **Core Foundation** | Shared types, error types, value objects | Rust std + serde |
+| **Contract Layer** | Pure traits & interfaces — zero runtime | Core Foundation |
+| **Runtime Execution** | Concrete implementations & drivers | Contract Layer |
+| **Application Infrastructure Kernel** | Application lifecycle, DI, config, boot | Runtime Execution |
+| **Application** | User code — routes, controllers, services, domains | Infrastructure Kernel |
+
+---
+
+## 2. Foundation Layer — Core Foundation
+
+The base of the entire platform. Only depends on `serde`, `serde_json`, and `thiserror`.
+
+**Crate:** `viontin-core`
+
+```
+viontin-core
+├── error.rs          → FrameworkError (unified error type)
+├── http.rs           → Request, Response, StatusCode, Method, Headers, Uri, Cookie
+├── connection.rs     → Connection, ConnectionPool, Value, Row, DbConfig
+├── entity.rs         → Entity trait (business data container)
+├── log.rs            → Level, LogEntry, LogChannel trait
+├── debug.rs          → Debug trait extensions
+├── pair.rs           → Key-value pair types
+└── lib.rs            → Re-exports
+```
 
 ```rust
-impl GemBinding for Inertia {
-    fn gem_middlewares(&self) -> Vec<Box<dyn Middleware>> {
-        vec![Box::new(InertiaMiddleware::new())]
-    }
+// Single error type for the entire platform
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum FrameworkError {
+    #[error("{0}")]
+    Internal(String),
+    // Planned: Config, Io, Parse, Validation, Authentication, NotFound, ...
 }
+
+pub type Result<T> = std::result::Result<T, FrameworkError>;
 ```
 
-`Boot::gem()` auto-detects `GemBinding` and registers middleware, providers, commands, and routes automatically.
-
-### Boot Builder & without\*() Methods
-
-The `Boot` builder provides `without*()` methods to disable default behaviors:
-
-```rust
-boot()
-    .withoutProvider("config")    // disable config loading
-    .withoutDefaultProviders()   // remove 5 built-in providers
-    .withoutCommands()           // clear CLI commands
-    .withoutGems()               // clear plugins
-    .withoutMiddlewares()        // clear middlewares
-```
-
-### Optional Features
-
-| Feature | Flag | Description |
-|---------|------|-------------|
-| Async server | `async` | Tokio-based async HTTP server |
-| Domain-Driven Design | `domain` | DDD building blocks (Domain, AggregateRoot, Repository) |
-| Viontin ORM | `orm` | Enable `orm` integration via `viontin_framework::orm` |
-| HTTP Client | `http-client` | `ureq`-based sync HTTP client for external APIs |
-| Graceful Shutdown | `shutdown` | SIGTERM/SIGINT handling (enabled by default) |
-| AES Encryption | `aes` | AES-256-GCM encryption via `aes-gcm` crate |
+**Key design decision:** Every crate in the ecosystem depends on `viontin-core` for shared types — no circular dependencies, no duplicated definitions.
 
 ---
 
-## 1. Platform Overview
+## 3. Contract Layer — Traits & Types
 
-Viontin is a **cloud-native Rust platform** for building microservices, APIs, CLI tools, distributed systems, and mixed-mode binaries — all within a single cohesive framework.
+Pure interfaces with **zero runtime implementation**. These modules define WHAT the platform can do, not HOW.
 
-The platform is organized as a monorepo with independent crate families:
+**Crate:** `viontin-framework` (types module group)
 
 ```
-viontin/
-├── products/
-│   ├── viontin/            # Core + CLI + Facade meta-crate
-│   ├── framework/          # Framework implementations & patterns
-│   ├── gems/               # Plugin system (Gems)
-│   ├── orm/                # Standalone ORM (zero framework deps)
-│   ├── viontest/           # Standalone testing framework
-│   ├── ui/                 # Future: Native UI framework (standalone)
-│   └── engine/             # Future: Game engine (standalone)
-├── examples/
-├── docs/
-└── scripts/
+Layer Boundary Rules:
+- NO runtime dependencies (no std::net, no filesystem I/O)
+- NO concrete implementations
+- ONLY traits, enums, structs, type aliases
+- Every trait has ≤6 methods (single responsibility)
 ```
+
+### Module Inventory
+
+| Module | Key Contracts | Methods |
+|--------|--------------|---------|
+| `auth` | `AuthGuard`, `AuthUser`, `AuthResult` | authenticate, user |
+| `cache` | `CacheDriver` | get, set, has, forget, clear |
+| `collection` | `Collection<T>` | map, filter, reduce, chunk, unique, sum, avg |
+| `config` | `ConfigValue` (String/Int/Float/Bool/Array/Object/Null) | as_str, as_int, as_bool, get, set |
+| `database` | `Connection`, `ConnectionPool`, `Value`, `Row` | query, execute, prepare |
+| `env` | `Environment` enum | Local, Dev, Staging, Prod, Testing |
+| `events` | `Event`, `Listener`, `Subscriber`, `Subscribable` | handle, subscribe |
+| `http` | `Request`, `Response`, `StatusCode`, `Method`, `Headers`, `Uri`, `Cookie` | parse, serialize |
+| `log` | `Level`, `LogEntry`, `LogChannel` | log, flush |
+| `mail` | `Mailer`, `Envelope`, `Attachment` | send, queue, later |
+| `notif` | `Notification`, `Notifiable`, `Channel` | send, route |
+| `page` | `Page<T>`, `PaginationLinks` | paginate, links |
+| `queue` | `Job`, `Driver` | push, pop, process |
+| `rate` | `RateLimiter` | attempt, hit, tooManyAttempts |
+| `route` | `RouteDefinition`, `RouteMethod` | match, compile |
+| `schedule` | `ScheduledJob`, `cron_matches()` | due, run |
+| `semver` | `Version`, `VersionReq`, `Meta`, `Compatibility` | parse, compare, compatible |
+| `session` | `SessionDriver` | get, set, has, forget, flush |
+| `storage` | `Driver` | get, put, delete, exists, url |
+| `support` | `Hasher`, `Encrypter`, `SimpleHasher` | hash, encrypt, verify |
+| `testing` | `ArchRule`, `ArchResult`, `ArchSeverity`, `ArchFinding` | check, name |
+| `validator` | `Validator`, `Outcome`, `Finding`, `Severity`, `Context` | validate, passes |
 
 ---
 
-## 2. Crate Architecture
+## 4. Runtime Execution Layer — Drivers & Servers
 
-### 2.1 Dependency Graph
+Concrete implementations of the Contract Layer traits. Every trait has at least one built-in implementation plus a facade.
 
-```
-                    ┌─────────────────────────────────────────────┐
-                    │               viontin (meta-crate)           │
-                    │     re-exports: fw, tui, gems, orm           │
-                    │     provides: boot(), domain!(), html!()     │
-                    └─────────────────────────────────────────────┘
-                                   │
-           ┌───────────────────────┼───────────────────────┐
-           │                       │                       │
-           ▼                       ▼                       ▼
-┌──────────────────────┐ ┌──────────────────┐ ┌──────────────────────┐
-│  framework    │ │  viontin-tui      │ │  viontin-cli         │
-│  core library         │ │  terminal UI      │ │  binary (33 cmds)   │
-│  35 public modules    │ │  prompts/styling  │ │                      │
-└──────────────────────┘ └──────────────────┘ └──────────────────────┘
-           │
-           │ (optional)
-           ├───────────────────────┐
-           │                       │
-           ▼                       ▼
-┌──────────────────────┐ ┌──────────────────────┐
-│  gems         │ │  orm         │
-│  plugin registry      │ │  ORM core + drivers  │
-│  WASM loader          │ │  pg/mysql/sqlite     │
-└──────────────────────┘ └──────────────────────┘
-```
+**Crate:** `viontin-framework` (runtime module group)
 
-### 2.2 Crate Responsibilities
+### 4.1 Facade Pattern Architecture
 
-| Crate | Type | Dependencies | Purpose |
-|-------|------|-------------|---------|
-| `viontin-core` | Library | `serde`, `thiserror` | Shared contracts & types: `Connection`, `Value`, `Row`, `Request`, `Response`, `Entity`, `FrameworkError` |
-| `viontin` | Meta-crate | `viontin-core`, `framework`, `tui`, `gems`, `macros`, `glob` | Unified facade: re-exports for end users, boot lifecycle, macros |
-| `framework` | Library | `viontin-core`, `serde_json`, `thiserror`, `glob`, `viontest` | Core platform: all implementations, runtime, patterns (Service, Controller, Repository) |
-| `viontin-tui` | Library | `framework`, `crossterm` (opt), `terminal_size`, `unicode-width` | Terminal toolkit: ANSI styling, interactive prompts, signature validator |
-| `viontin-cli` | Binary | `tui`, `framework`, `notify`, `regex` | CLI executable: 45 commands, project scanner |
-| `gems` | Library | `framework`, `linkme`, `serde` (opt) | Plugin system: GemRegistry, WASM lifecycle |
-| `orm` | Library (optional) | (none — standalone) | ORM core: QueryBuilder, Schema, Migration, DatabaseType, NoSqlConnection |
-| `pg` | Library (optional) | `orm` | PostgreSQL driver |
-| `mysql` | Library (optional) | `orm` | MySQL driver |
-| `sqlite` | Library (optional) | `orm` | SQLite driver |
-
----
-
-## 3. Three-Layer Platform Model
-
-The `framework` crate follows a strict three-layer design:
+Every subsystem follows the same pattern:
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                      RUNTIME LAYER                                │
-│  Executable infrastructure: server, router, drivers, scheduler   │
-│  Depends on: Core + Types                                         │
-│                                                                   │
-│  server  routing  caching  sessions  storage  mail               │
-│  notif   db-query csrf    rate-limit schedule  i18n              │
-│  debug   errors   ws      arch-test  domain  fs                  │
-└───────────────────────────┬──────────────────────────────────────┘
-                            │
-┌───────────────────────────▼──────────────────────────────────────┐
-│                      CORE LAYER                                   │
-│  Concrete implementations of traits                               │
-│  Depends on: Types                                                 │
-│                                                                   │
-│  Application  ConfigRepository  Logger  Authentication           │
-│  EventDispatcher  SyncQueue  ValidatorGroup  SimpleEncrypter     │
-└───────────────────────────┬──────────────────────────────────────┘
-                            │
-┌───────────────────────────▼──────────────────────────────────────┐
-│                      TYPES & TRAITS LAYER                         │
-│  Pure interfaces + value types — zero runtime dependencies       │
-│                                                                   │
-│  http  auth  cache  collection  config  database  env           │
-│  events  log  mail  notif  page  queue  rate  route             │
-│  schedule  semver  session  storage  support  validator         │
-└──────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                       FACADE                                  │
+│  pub struct Cache { driver: Box<dyn CacheDriver> }           │
+│  impl Cache {                                                │
+│      pub fn memory() -> Self { Self::new(MemoryCache) }      │
+│      pub fn file(path) -> Self { Self::new(FileCache) }      │
+│      pub fn null() -> Self { Self::new(NullCache) }          │
+│                                                              │
+│      pub fn get(&self, key) -> Option<Value> {               │
+│          self.driver.get(key)   // delegates                 │
+│      }                                                       │
+│  }                                                           │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-### 3.1 Types & Traits Layer
+The facade IS the public API. Users never interact with drivers directly.
 
-Pure contract definitions with no runtime dependencies. These modules **only** define traits and value types:
+### 4.2 Built-in Drivers
 
-| Module | Key Contracts |
-|--------|--------------|
-| `auth` | `AuthGuard`, `AuthUser`, `AuthResult` |
-| `cache` | `CacheDriver` (get/set/has/forget/clear) |
-| `collection` | `Collection<T>` (map/filter/reduce/chunk/unique/sum/avg) |
-| `config` | `ConfigValue` enum (String/Int/Float/Bool/Array/Object/Null) |
-| `database` | `Connection`, `ConnectionPool`, `Value`, `Row`, `DbConfig` |
-| `env` | `Environment` enum (Local/Dev/Staging/Prod/Testing) |
-| `events` | `Event`, `Listener`, `Subscriber`, `Subscribable` |
-| `http` | `Request`, `Response`, `StatusCode`, `Method`, `Headers`, `Uri`, `Cookie` |
-| `log` | `Level`, `LogEntry`, `LogChannel` |
-| `mail` | `Mailer`, `Envelope`, `Attachment` |
-| `notif` | `Notification`, `Notifiable`, `Channel` |
-| `page` | `Page<T>`, `PaginationLinks` |
-| `queue` | `Job`, `Driver` |
-| `rate` | `RateLimiter` |
-| `route` | `RouteDefinition`, `RouteMethod` |
-| `schedule` | `ScheduledJob`, `cron_matches()` |
-| `semver` | `Version`, `VersionReq`, `Meta`, `Compatibility` |
-| `session` | `SessionDriver` |
-| `storage` | `Driver` |
-| `support` | `Hasher`, `Encrypter`, `SimpleHasher`, string/URL utilities |
-| `testing` | `ArchRule`, `ArchResult`, `ArchSeverity`, `ArchFinding` |
-| `validator` | `Validator`, `Outcome`, `Finding`, `Severity`, `Context` |
+| Facade | Trait | Built-in Drivers |
+|--------|-------|-----------------|
+| `Cache` | `CacheDriver` | `MemoryCache`, `FileCache`, `NullCache` |
+| `Session` | `SessionDriver` | `MemorySession`, `FileSession` |
+| `Storage` | `Driver` (storage) | `LocalStorage`, `MemoryStorage` |
+| `Mail` | `Mailer` | `LogTransport`, `ArrayTransport` |
+| `Queue` | `Driver` (queue) | `SyncQueue` |
+| `Notif` | `NotificationChannel` | `MailChannel`, `DatabaseChannel` |
+| `Auth` | `AuthGuard` | `BasicGuard`, `SessionGuard` |
 
-Each trait is kept minimal — single-responsibility with 2–6 methods.
+### 4.3 HTTP Server
 
-### 3.2 Core Layer
+**Zero external HTTP dependencies.** Hand-written TCP server on `std::net::TcpListener`.
 
-Concrete implementations of the type-layer traits, plus application infrastructure:
+```
+Server (TcpListener)
+│
+├── accept loop (per-connection thread)
+│     │
+│     ├── parse HTTP/1.1 request (manual parser)
+│     │     └── Method · Path · Headers · Body
+│     │
+│     ├── Router.match(method, path)
+│     │     ├── Exact: "/users" → handler
+│     │     ├── Parameterized: "/users/:id" → handler + params
+│     │     └── 404 → built-in handler
+│     │
+│     ├── [Middleware Chain] → request/response pipeline
+│     │
+│     ├── handler(request) → response
+│     │
+│     └── write HTTP/1.1 response to TcpStream
+```
+
+**Key characteristics:**
+- No `hyper`, `actix`, or `tokio` dependency
+- Per-connection threading model (one OS thread per request)
+- Path parameter extraction via `:param` syntax
+- Built-in `not_found` and `method_not_allowed` handlers
+
+### 4.4 WebSocket
+
+Fully self-contained WebSocket implementation:
+
+```
+WsRouter
+├── .ws("/chat", handler)
+└── attach(router)
+      └── Intercepts HTTP upgrade requests
+            ├── Validate Upgrade header
+            ├── SHA-1 handshake (hand-rolled, ws/sha1.rs)
+            ├── Base64 accept key (hand-rolled, ws/base64.rs)
+            └── Upgrade → WebSocket frame loop
+                  ├── Frame encode/decode (opcode, mask, length, payload)
+                  └── Ping/pong keepalive
+```
+
+### 4.5 Runtime Module Map
 
 | Module | Key Implementations |
 |--------|-------------------|
-| `app` | `Application`, `Container` (TypeId-based DI), `ServiceProvider`, built-in providers (Env/Config/Log/Queue/Events) |
-| `config` | `ConfigRepository` (JSON + env overlay), `ConfigLoader`, global `config()`/`config_set()` |
-| `logging` | `Logger`, `StdoutLog`, global `log_info()`/`log_error()`/`log_debug()`/`log_warning()` |
-| `auth` | `BasicGuard`, `SessionGuard`, `Auth` facade |
-| `events` | `EventDispatcher` (pub/sub with subscriber registration) |
-| `queue` | `SyncQueue`, `Queue` facade |
-| `validator` | `ValidatorGroup` (composite validation) |
-| `encryption` | `SimpleEncrypter` (XOR-based — dev only, NOT secure for production) |
-
-### 3.3 Runtime Layer
-
-Executable infrastructure — servers, drivers, and runtime utilities:
-
-| Module | Key Implementations |
-|--------|-------------------|
-| `server` | `Server` (TCP), `Router`, `Handler` type alias, per-connection thread pool |
+| `server` | `Router`, `Server` (TCP), per-connection thread pool, graceful shutdown |
+| | Submodules: `server` (Server + connection handler) |
 | `routing` | `RouteRegistry`, global `register()`/`register_handler()`/`finalize()`, `RouteProvider` |
 | `caching` | `MemoryCache`, `FileCache`, `NullCache`, `Cache` facade |
+| | Ergonomic constructors: `Cache::memory()`, `Cache::file(p)`, `Cache::null()` |
 | `sessions` | `MemorySession`, `FileSession`, `Session` facade |
 | `storage` | `LocalStorage`, `MemoryStorage`, `Storage` facade |
-| `mail` | `LogTransport`, `ArrayTransport`, `Mail` facade |
+| `mail` | `LogTransport`, `ArrayTransport`, `SmtpTransport` (cfg), `Mail` facade |
+| | Submodules: `log`, `array`, `smtp` (cfg) |
 | `notif` | `MailChannel`, `DatabaseChannel`, `Notif` facade |
 | `db` | `QueryBuilder` (fluent SQL: select/where/join/orderBy/groupBy/limit/offset) |
 | `fs` | `read()`, `write()`, `copy()`, `delete()`, `ensure_dir()`, `TempDir`, `FileInfo`, `find_files()` |
@@ -216,700 +249,613 @@ Executable infrastructure — servers, drivers, and runtime utilities:
 | `schedule` | `Scheduler` (cron expression engine, job runner) |
 | `lang` | `JsonTranslator` (JSON-based with locale fallback), `trans()`/`choice()`/`locale()` |
 | `debug` | `dump()`, `dd()`, `Profiler`, `benchmark()`, `memory_usage()` |
-| `error`/`errors` | `FrameworkError` enum, `HttpError`, `ErrorReport`, error page rendering |
-| `domain` | `Domain`, `DomainBoundary`, `DomainViolation`, `register()`/`check_all()` |
-| `testing` | `ArchChecker`, built-in `ArchRule` impls: `IsPascalCase`, `IsSnakeCase`, `DoesNotDependOn`, etc. |
-| `gem` | `GemFacade`, `GemRegistry`, `GemMeta`, `GemKind`, `SimpleGem`, `DynamicGem` |
+| `errors` | `HttpError`, `ErrorReport`, error page rendering |
 | `ws` | `WebSocketHandler`, `WsRouter`, `WsServer`, frame encode/decode, handshake |
+| | Submodules: `frame`, `sha1`, `base64` |
 | `cli` | `Command`, `Kernel`, `Input`, `Output`, `ExitCode`, `Signature`, `ArgDef`, `OptDef`, `Spinner`, `ProgressBar` |
+| `middleware` | `CorsMiddleware`, `PanicRecovery`, `RequestId`, `RateLimitMiddleware`, `MiddlewareChain` |
+| | Submodules: `cors`, `panic`, `health`, `static_files`, `timeout`, `request_id`, `rate_limit` |
 
 ---
 
-## 4. Module Dependency Map
+## 5. Application Infrastructure Kernel — The Core of Every App
 
-Within `framework`, modules depend on each other as follows:
+This is the layer that turns a collection of libraries into a **running application**. It is the most important layer for understanding how Viontin works.
 
 ```
-app → config, env, log, queue, events
-auth → support::hash (SimpleHasher, Hasher)
-csrf → session
-encryption → support (Encrypter trait)
-notif → mail (Envelope)
-rate → cache (CacheDriver)
-route → http (Method), server (Handler)
-route::provider → app (ServiceProvider), route
-server → http (Request, Response, etc.)
-ws → http, server (Router)
-cli::output → log (LogChannel)
-cli::input → cli::command (Signature)
-cli::kernel → cli::command, cli::input, cli::exit, cli::output
-gem::validator → validator, semver
-semver::compat → semver::version, semver::constraint
-semver::constraint → semver::version
-
-All standalone modules (no internal deps):
-collection  fs  page  path  support  cli (partial)
+┌─────────────────────────────────────────────────────────────────────┐
+│                  APPLICATION INFRASTRUCTURE KERNEL                    │
+│                                                                      │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  Boot Lifecycle                                               │   │
+│  │  boot() → BootBuilder → .serve() / .run()                    │   │
+│  │  Orchestrates the entire startup sequence                     │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  DI Container (TypeId-based)                                  │   │
+│  │  Container::new() → .singleton() → .resolve() → .has()       │   │
+│  │  No string keys, no runtime downcasting errors                │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  Service Provider System                                      │   │
+│  │  2-phase boot: 1) register() 2) boot()                       │   │
+│  │  5 built-in providers + user providers                        │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  Configuration System                                         │   │
+│  │  .env loading → JSON config → env overlay → dot notation     │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  Logging Infrastructure                                       │   │
+│  │  Logger + LogChannel → global log_info()/log_error()         │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  Error Handling Infrastructure                                │   │
+│  │  FrameworkError → ErrorReport → actionable solutions         │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  Event System (pub/sub)                                       │   │
+│  │  EventDispatcher → Listener → Subscriber                     │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  CLI Kernel                                                   │   │
+│  │  Kernel::run() → Command dispatch → Input/Output → ExitCode  │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  Middleware Chain                                             │   │
+│  │  Middleware trait → request/response pipeline                │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  Gem Registry & Plugin System                                 │   │
+│  │  GemRegistry → GemFacade → before_build / after_build        │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-**Standalone modules** — no internal framework dependencies:
-- `collection` — pure data structure
-- `env` — file parsing only
-- `fs` — OS-level file operations
-- `page` — pure pagination math
-- `path` — path resolution helpers
-- `support` — utilities (hashing, string, URL)
-- `debug` — diagnostic helpers
-- `testing::arch` — architecture rule engine
+### 5.1 Boot Lifecycle — Detailed Flow
 
----
-
-## 5. Boot Lifecycle
-
-The `viontin` meta-crate provides the unified boot sequence via `boot()`:
+The `boot()` function creates a `Boot` builder and orchestrates the entire startup:
 
 ```
 boot()
-  │
-  ├── Application::new()
-  │     └── Container::new()
-  │     └── Built-in providers:
-  │           EnvProvider     → loads .env
-  │           ConfigProvider  → loads config/*.json
-  │           LogProvider     → initializes Logger
-  │           QueueProvider   → initializes SyncQueue
-  │           EventsProvider  → initializes EventDispatcher
-  │
-  ├── Kernel::new()
-  │     └── Empty command registry (filled by user)
-  │
-  ├── Router::new()
-  │     └── Empty route table (filled by user or .routes())
-  │
-  ├── WsRouter::new()
-  │     └── Empty WebSocket route table
-  │
-  └── GemRegistry::new()
-        └── Empty gem registry (filled by user)
+│
+├── Initialize base components:
+│     ├── Application::new()
+│     │     └── Container::new()          → empty TypeId map
+│     │     └── 5 built-in providers:
+│     │           EnvProvider             → loads .env
+│     │           ConfigProvider          → loads config/*.json
+│     │           LogProvider             → initializes Logger
+│     │           QueueProvider           → initializes SyncQueue
+│     │           EventsProvider          → initializes EventDispatcher
+│     │
+│     ├── Kernel::new()                   → empty CLI command registry
+│     ├── Router::new()                   → empty HTTP route table
+│     ├── WsRouter::new()                 → empty WebSocket route table
+│     ├── GemRegistry::new()              → empty plugin registry
+│     └── MiddlewareChain::new()          → empty middleware pipeline
+│
+├── Builder phase (user code runs here):
+│     ├── .provider(P)                   → register service provider
+│     ├── .command(C)                    → register CLI command
+│     ├── .gem(G)                        → register gem plugin
+│     ├── .middleware(M)                 → register middleware
+│     ├── .get("/", h) / .post(...)      → register HTTP routes
+│     ├── .ws("/", h)                    → register WebSocket routes
+│     └── .entry(f) / .serve(a) / .run() → terminal method
+│
+└── Terminal method triggered:
+      │
+      ├── 1. gems.before_build_all()
+      │     → All plugins run their pre-build hooks
+      │     (asset processing, config validation, code generation)
+      │
+      ├── 2. app.run()
+      │     → Phase 1: register() for every provider (in order)
+      │     → Phase 2: boot() for every provider (in order)
+      │     Order: Env → Config → Log → Queue → Events → User providers
+      │
+      ├── 3. CLI dispatch (if CLI args detected)
+      │     → kernel.run(&args)
+      │     → If command matched: execute and exit
+      │
+      ├── 4. Router finalization
+      │     → router.extend_from_registry()
+      │     → ws_router.attach(router)
+      │     → middleware_chain.apply(router)
+      │
+      └── 5. Entry point execution
+            → If .serve(addr):
+                  server.run(addr)  ← blocking TCP listener
+            → If .entry(f):
+                  f(BootContext)    ← user callback
 ```
 
-### 5.1 Builder Methods
+### 5.2 DI Container — TypeId-Based
 
 ```rust
-Boot
-  ├── .provider(P)          → register a ServiceProvider
-  ├── .command(C)           → register a CLI Command
-  ├── .gem(G)               → register a Gem plugin (requires `GemBuilder` + `GemBinding`)
-  ├── .routes(fn)           → configure Router in closure
-  ├── .get("/", handler)    → register GET route
-  ├── .post("/", handler)   → register POST route
-  ├── .any("/", handler)    → register route for any method
-  ├── .ws("/", handler)     → register WebSocket handler
-  ├── .ws_with_config(...)  → register WebSocket with config
-  │
-   ├── .entry(f)             → define application entry point
-   ├── .serve("addr")        → HTTP server (shortcut for `entry(\|ctx\| ctx.serve(addr)).run()`)
-   ├── .run()                → finalize + execute
-   └── .run_with(f)          → shortcut for `entry(f).run()`
-```
-
-### 5.2 Serve Flow
-
-```
-.serve("127.0.0.1:8080")
-  │
-  ├── gems.before_build_all()    → plugin pre-build hooks
-  │
-  ├── app.run()
-  │     └── For each provider:
-  │           1. register() → bind singletons into Container
-  │           2. boot()     → post-registration setup
-  │     (Order: Env → Config → Log → Queue → Events)
-  │
-  ├── If CLI args exist:
-  │     └── kernel.run(&args) → dispatch to registered Command
-  │
-  ├── router.extend_from_registry() → merge RouteRegistry into Router
-  │
-  ├── ws_router.attach(router)     → merge WebSocket routes
-  │
-  └── server.run("addr")           → start TCP listener
-```
-
-### 5.3 Run Flow
-
-```
-.run()
-  │
-  ├── gems.before_build_all()
-  ├── app.run()
-  ├── If CLI args exist → kernel.run() → exit
-  └── entry(|ctx| { ... })  ← user callback
-```
-
-This mode is used for CLI-only tools, library-style usage, or custom application loops where no HTTP server is needed.
-
----
-
-## 6. Architectural Patterns
-
-### 6.1 Facade Pattern
-
-The framework uses a consistent facade pattern for swappable backends:
-
-```
-┌──────────────┐     ┌───────────────────┐
-│   Facade     │────▶│  Box<dyn Trait>    │
-│  (user API)  │     │  (inner driver)    │
-└──────────────┘     └───────────────────┘
-                           │
-              ┌────────────┼────────────┐
-              ▼            ▼            ▼
-        ┌──────────┐ ┌──────────┐ ┌──────────┐
-        │ Impl A   │ │ Impl B   │ │ Impl C   │
-        └──────────┘ └──────────┘ └──────────┘
-```
-
-Each facade:
-1. Wraps `Box<dyn Trait>` 
-2. Delegates all calls to the inner driver
-3. Adds cross-cutting concerns (key prefixing, auto-flush, default routing)
-
-| Facade | Trait | Built-in Drivers |
-|--------|-------|-----------------|
-| `Cache` | `CacheDriver` | `MemoryCache`, `FileCache`, `NullCache` |
-| `Session` | `SessionDriver` | `MemorySession`, `FileSession` |
-| `Storage` | `Driver` | `LocalStorage`, `MemoryStorage` |
-| `Mail` | `Mailer` | `LogTransport`, `ArrayTransport` |
-| `Queue` | `Driver` | `SyncQueue` |
-| `Notif` | — | `MailChannel`, `DatabaseChannel` |
-| `Auth` | `AuthGuard` | `BasicGuard`, `SessionGuard` |
-
-The pattern allows users to swap implementations at configuration time without changing application code.
-
-### 6.2 Service Provider Pattern
-
-Inspired by Laravel's service container, the DI system works in two phases:
-
-```
-Application::new()
-  │
-  ├── .with(MyProvider)       → register provider
-  ├── .without::<ProviderT>()  → remove built-in provider
-  │
-  └── .run()
-        ├── Phase 1: register()
-        │     └── For each provider:
-        │           provider.register(&mut container)
-        │           → binds singletons: container.singleton::<T>(instance)
-        │
-        └── Phase 2: boot()
-              └── For each provider (same order):
-                    provider.boot(&container)
-                    → reads resolved dependencies
-```
-
-**Built-in providers** (registered in order):
-
-1. `EnvProvider` — loads `.env` into process environment
-2. `ConfigProvider` — reads `config.json` + `config.{env}.json`, builds `ConfigRepository`
-3. `LogProvider` — initializes `Logger` with `StdoutLog` channel
-4. `QueueProvider` — initializes `SyncQueue` driver
-5. `EventsProvider` — initializes `EventDispatcher`
-
-**Container implementation:**
-
-```rust
-struct Container {
+pub struct Container {
     bindings: HashMap<TypeId, Box<dyn Any>>,
 }
 ```
 
-Type-safe, keyed by `TypeId` — no string-based lookup, no downcasting errors at runtime.
-
-### 6.3 Domain-Driven Design Enforcement
-
-Viontin enforces bounded contexts at the application level:
+**Why TypeId?** No string keys, no typos at runtime, no downcasting errors. Each type is its own key.
 
 ```
-Domain {
-    name: &'static str,
-    allows: &'static [&'static str],     // allowed dependencies
-    provides: &'static [&'static str],   // public API surface
+Container
+├── singleton::<T>(value: T)          → store by TypeId::of::<T>()
+├── resolve::<T>() -> Option<&T>      → lookup by TypeId::of::<T>()
+├── has::<T>() -> bool                → check if TypeId exists
+└── remove::<T>()                     → remove binding
+```
+
+### 5.3 Service Provider System — Two-Phase Boot
+
+Inspired by Laravel's service container. Every provider implements:
+
+```rust
+pub trait ServiceProvider: Debug + Send + Sync {
+    fn name(&self) -> &str;                      // unique identifier
+    fn register(&self, app: &mut Application) {} // Phase 1: bind services
+    fn boot(&self, app: &Application) {}          // Phase 2: initialize
 }
 ```
 
-**Registration (via `domain!` macro):**
+**Two-phase boot guarantees:**
+- Phase 1 runs `register()` for ALL providers
+- Phase 2 runs `boot()` for ALL providers (same order)
+- This ensures every provider's services are available before any provider tries to resolve them
 
-```rust
-domain!(billing, allows: [order, payment]);
-// expands to:
-//   Domain { name: "billing", allows: &["order", "payment"], provides: &[] }
-//   register_domain(d);
+**Built-in providers (execution order):**
+
+| # | Provider | Name | register() | boot() |
+|---|----------|------|-----------|--------|
+| 1 | `EnvProvider` | `"env"` | — | Load `.env` into process env |
+| 2 | `ConfigProvider` | `"config"` | — | Read `config/*.json`, build `ConfigRepository` |
+| 3 | `LogProvider` | `"log"` | — | Initialize global `Logger` with `StdoutLog` |
+| 4 | `QueueProvider` | `"queue"` | Bind `SyncQueue` singleton | — |
+| 5 | `EventsProvider` | `"events"` | Bind `EventDispatcher` singleton | — |
+
+### 5.4 Configuration System
+
+```
+Environment Detection:
+  APP_ENV → Environment enum (Local|Dev|Staging|Prod|Testing)
+  ↓
+Config Loading Chain:
+  config_init("path/to/config")
+    ├── Read config.json           → base config
+    └── Read config.{env}.json     → env-specific overrides (merged)
+    ↓
+  ConfigRepository {
+      data: HashMap<String, ConfigValue>,
+      env: Environment,
+  }
+  ↓
+Access Patterns:
+  config("database.connections.pg.host")    → dot notation
+  config("app.name")                         → global function
+  env("DATABASE_URL")                        → .env values
+  env_int("PORT")                            → typed access
+  env_bool("APP_DEBUG")                      → boolean access
 ```
 
-**Enforcement flow:**
+### 5.5 Error Handling Infrastructure
 
 ```
-viontin check --arch
+Application Error Flow:
+  FrameworkError (unified error type)
+    │
+    ├── Internal(String)          → generic errors
+    │
+    ├── Planned typed variants:
+    │     Config, Io, Parse, Validation,
+    │     Authentication, NotFound, RateLimit, Csrf
+    │
+    └── ErrorReport (actionable errors):
+          ├── title: String
+          ├── detail: String
+          ├── solution: Option<String>  → "Try running: viontin make:domain billing"
+          ├── file: SourceLocation
+          └── hints: Vec<String>
+```
+
+### 5.6 Logging Infrastructure
+
+```
+LogChannel trait → StdoutLog (built-in)
   │
-  └── check_domains()
-        ├── For each domain in global registry:
-        │     └── DomainBoundary::scan_imports(path)
-        │           └── Regex-based `use` statement analysis
-        │                 ├── Found import NOT in allows → Error (✘)
-        │                 └── Found import IN allows but not provides → Warning (⚠)
-        │
-        └── Return Vec<DomainViolation>
-```
-
-The `allows` list controls which domains may be imported. The `provides` list designates the public API surface — imports from `allows`-listed domains that bypass `provides` generate warnings.
-
-**Levels of enforcement:**
-
-| Level | Behavior |
-|-------|----------|
-| 0–1 | No domains, no checking |
-| 2 | Domains detected, `viontin check --arch` enforces boundaries |
-| 3+ | Boundaries become service contracts (CI-enforced) |
-
----
-
-## 7. CLI Command System
-
-### 7.1 Architecture
-
-The CLI system spans two crates:
-
-```
-viontin-tui                    viontin-cli
-┌─────────────────────┐       ┌──────────────────────┐
-│  Re-exports:         │       │  Binary: main.rs      │
-│  Command (trait)     │       │  Commands:            │
-│  Kernel (dispatch)   │       │    new.rs  build.rs   │
-│  Input/Output         │       │    dev.rs  check.rs   │
-│  ExitCode             │       │    make.rs inspect.rs │
-│                       │       │    add.rs  run.rs     │
-│  Adds:                │       │    pkg.rs  test.rs    │
-│    styling (ANSI)     │       │                      │
-│    prompts (crossterm)│       │  project.rs (scanner) │
-│    validator          │       └──────────────────────┘
-└─────────────────────┘
-```
-
-### 7.2 Command Trait
-
-```rust
-trait Command {
-    fn signature(&self) -> &Signature;    // argument/option schema
-    fn description(&self) -> &str;
-    fn handle(&self, input: Input, output: Output) -> ExitCode;
-}
-```
-
-**Signature syntax** (Laravel-inspired):
-
-```
-"make:controller {name} {--force} {--resource} {--type=default}"
-  │              │         │          │            │
-  command name   required   flag      flag        option
-                 argument                      with default
-```
-
-### 7.3 42 Commands
-
-```
-Level 0 — Core (project lifecycle)
-  new      build    dev     run     check   test    add
-  init
-
-Cargo Management
-  clean    doc      fix     bench   tree    package  metadata
-
-Publishing & Registry
-  publish  update   install uninstall  search
-
-Code Quality
-  fmt      clippy
-
-Level 1 — Scaffolding (make:*)
-  make:controller   make:middleware   make:model    make:route
-  make:command      make:event        make:job      make:mail
-  make:notification make:query        make:module   make:service
-  make:repository
-
-Level 2 — Domain-Driven Design (DDD)
-  make:domain         (bounded contexts)
-  make:aggregate      (aggregate roots, event sourcing)
-  make:entity         (domain entities)
-  make:value-object   (immutable value objects)
-
-Level 3 — Microservices
-  make:service-contract
-
-Level 4 — MVC Templates
-  make:view
-
-Level 5 — Inspection
-  inspect (--domains, --models, --routes, --commands)
-```
-
-### 7.4 Dispatch Flow
-
-```
-kernel.run(&args)
+  ├── log(entry: LogEntry)
+  │     └── Level: Debug, Info, Notice, Warning, Error, Critical, Alert
   │
-  ├── Parse args to extract command name
+  ├── Global functions:
+  │     log_info!("User {} logged in", id)
+  │     log_error!("Failed to process payment: {}", err)
+  │     log_debug!("SQL: {}", query)
+  │     log_warning!("Rate limit hit for IP {}", ip)
+  │
+  └── Logger struct (wraps LogChannel)
+        └── Automatic environment detection:
+              Local/Dev → verbose output
+              Prod → structured JSON
+```
+
+### 5.7 Event System — Pub/Sub
+
+```
+EventDispatcher (singleton in container)
+  │
+  ├── listen::<E, L>()           → register listener for event
+  ├── subscribe(subscriber)      → register subscriber (multiple events)
+  ├── dispatch(&event)           → publish event to all listeners
+  │
+  ├── Built-in:
+  │     Event trait → Listener trait → Subscriber trait
+  │     SyncQueue integration (jobs can be dispatched as events)
+  │
+  └── Domain events (behind `domain` feature):
+        DomainEvent trait → extends Event with domain metadata
+        DomainListener → scoped to specific domain
+```
+
+### 5.8 CLI Kernel — Command Dispatch
+
+```
+Kernel::run(&args)
+  │
+  ├── Parse CLI args → extract command name + arguments
   ├── Lookup Command by signature name match
+  │
   ├── If found:
-  │     ├── signature.parse(args) → Input (validated)
+  │     ├── signature.parse(args) → Input (validated arguments)
   │     ├── command.handle(input, output) → ExitCode
   │     └── return ExitCode
   │
   └── If not found:
         ├── Show "Command not found"
-        └── Suggest similar commands
+        └── Suggest similar commands (fuzzy match)
+
+Command trait:
+  trait Command {
+      fn signature(&self) -> &Signature;     // "make:controller {name} {--force}"
+      fn description(&self) -> &str;
+      fn handle(&self, input: Input, output: Output) -> ExitCode;
+  }
+
+Signature syntax (Laravel-inspired):
+  "make:controller {name} {--force} {--resource} {--type=default}"
+  │              │         │          │            │
+  command name   required   flag      flag        option with default
+                 argument
 ```
 
----
-
-## 8. TUI Toolkit
-
-The `viontin-tui` crate layers interactive terminal capabilities on top of the framework's CLI abstractions:
-
-| Component | Description | Backend |
-|-----------|-------------|---------|
-| `styling` | ANSI style helpers: bold, dim, italic, underline, foreground/background colors (8-color, 256-color, truecolor) | Pure ANSI escape codes |
-| `prompts` | Interactive: `text()`, `select()`, `confirm()`, `password()` | `crossterm` (optional, behind `prompts` feature) |
-| `validator` | CLI signature parsing, argument/option validation | Standalone (reimplements Laravel-style signature grammar) |
-
-The TUI crate re-exports `Kernel`, `Command`, `Input`, `Output`, and `ExitCode` from `framework::cli` — making it the primary entry point for CLI application authors.
-
----
-
-## 9. HTTP Server & Routing
-
-### 9.1 Server Architecture
+### 5.9 Middleware Chain
 
 ```
-Server
-  │
-  ├── TcpListener::bind("addr")
-  │
-  └── accept loop (per-connection thread)
-        │
-        ├── parse HTTP/1.1 request (manual parser)
-        │     └── Method  Path  Headers  Body
-        │
-        ├── Router.match(method, path)
-        │     ├── Exact match: "/users" → handler
-        │     ├── Parameterized: "/users/:id" → handler with params
-        │     └── 404 → built-in not_found handler
-        │
-        ├── CSRF check (if enabled)
-        │
-        ├── handler(request) → response
-        │
-        └── write HTTP/1.1 response to TcpStream
+Middleware trait:
+  trait Middleware: Debug + Send + Sync {
+      fn name(&self) -> &str;
+      fn handle(&self, req: &mut Request, next: Next) -> Response;
+  }
+
+Pipeline execution:
+  Request → Middleware1 → Middleware2 → ... → Handler → Response
+                                        ↓
+                           (any middleware can short-circuit)
 ```
 
-**Key characteristics:**
-- Zero external HTTP dependencies — hand-written TCP server
-- Per-connection thread (one thread per request)
-- Manual HTTP/1.1 request parsing (no hyper/actix)
-- Path parameter extraction via `:param` syntax
-
-### 9.2 Two-Tier Routing
-
-The framework has **two parallel routing systems** that merge at boot time:
-
-```
-Compile-time / Setup-time:
-  route::register("/users", Method::GET)
-  route::register_handler("/users", handler_fn)
-
-Boot-time (serve):
-  Router::new()                         → empty router
-    .get("/health", health_handler)     → inline registration
-    .routes(|r| r.post("/data", ...))   → builder closure
-  
-  router.extend_from_registry()         → merge route::registry into router
-  
-  final: Router with all routes
-```
-
-The `RouteRegistry` module holds metadata about routes (definitions, methods). The `Router` (in `server`) holds executable handlers. `extend_from_registry()` bridges the two at boot time.
-
-### 9.3 WebSocket Support
-
-```
-WsRouter
-  ├── .ws("/chat", handler)
-  └── .ws_with_config("/chat", config, handler)
-        │
-        └── attach(router)
-              └── Intercepts HTTP upgrade requests
-                    ├── Validate Upgrade header
-                    ├── SHA-1 handshake (hand-rolled)
-                    ├── Base64 accept key (hand-rolled)
-                    └── Upgrade → WebSocket frame loop
-```
-
-WebSocket implementation is fully self-contained:
-- Hand-rolled SHA-1 (`ws/sha1.rs`)
-- Hand-rolled Base64 (`ws/base64.rs`)
-- Frame encode/decode (opcode, mask, length, payload)
-- Ping/pong keepalive
-
----
-
-## 10. Configuration System
-
-### 10.1 Environment Detection
-
-```rust
-enum Environment {
-    Local,    // development machine
-    Dev,      // shared dev server
-    Staging,  // pre-production
-    Prod,     // production
-    Testing,  // test suite
-}
-```
-
-Auto-detected or set via `APP_ENV` environment variable. Used for:
-- Config file selection (`config.json` + `config.{env}.json`)
-- Debug mode activation
-- Environment-specific logging
-
-### 10.2 Config Loading Chain
-
-```
-config_init("path/to/config")
-  │
-  ├── Read config.json        → base config
-  ├── Read config.{env}.json  → override + merge
-  │
-  └── ConfigRepository {
-        data: HashMap<String, ConfigValue>,
-        env: Environment,
-      }
-```
-
-Config values are accessed via the global `config()` function or through the `Config` facade. Supports nested key access via dot notation: `config("database.connections.pg.host")`.
-
-### 10.3 .env Loading
-
-```
-load_env() / load_env_auto()
-  │
-  ├── Read .env file
-  ├── Parse KEY=VALUE lines
-  └── Set into std::env (process environment)
-```
-
-Available via `env()`, `env_int()`, `env_bool()` functions with default value support.
-
----
-
-## 11. Plugin System (Gems)
-
-### 11.1 Architecture
+### 5.10 Gem Registry — Plugin System
 
 ```
 GemRegistry
   │
   ├── register(gem: impl GemFacade)
   │
-  └── before_build_all()
-        │
-        └── For each registered gem:
-              ├── gem.before_build() → process, validate
-              └── gem.after_build()  → finalize, cleanup
+  ├── before_build_all()
+  │     └── For each gem:
+  │           gem.before_build() → process, validate, transform
+  │
+  └── after_build_all()
+        └── For each gem:
+              gem.after_build() → finalize, cleanup
+
+GemFacade trait:
+  trait GemFacade {
+      fn meta(&self) -> &GemMeta;
+      fn before_build(&self) -> Result<()> { Ok(()) }
+      fn after_build(&self) -> Result<()> { Ok(()) }
+  }
+
+GemBinding (auto-wiring):
+  impl GemBinding for Inertia {
+      fn gem_middlewares(&self) -> Vec<Box<dyn Middleware>> {
+          vec![Box::new(InertiaMiddleware::new())]
+      }
+      // Also: gem_providers(), gem_commands(), gem_routes()
+  }
+
+Boot::gem() auto-detects GemBinding and wires everything automatically.
 ```
 
-### 11.2 Gem Types
+---
+
+## 6. Crate Architecture — Platform Layer
+
+### 6.1 Workspace Organization
+
+```
+viontin/ (root workspace — NOT a git repo)
+│
+├── products/
+│   ├── viontin/           → Meta-crate, CLI & macros
+│   │   └── crates/
+│   │       ├── core/      → Foundation Layer (serde, thiserror)
+│   │       ├── viontin/   → Facade meta-crate (re-exports everything)
+│   │       ├── cli/       → CLI binary (45 commands)
+│   │       └── macros/    → Proc macros (#[domain], #[domain_event])
+│   │
+│   ├── framework/         → Framework implementations
+│   │   └── crates/
+│   │       ├── framework/ → Contract + Runtime + Infrastructure Kernel
+│   ├── tui/               → TUI toolkit (prompts, styling, ANSI) — standalone
+│   │
+│   ├── gems/              → Plugin system
+│   │   └── crates/
+│   │       ├── gems/      → Gem registry & loader
+│   │       ├── inertia/   → InertiaJS SPA adapter
+│   │       ├── tailwind/  → TailwindCSS build-time integration
+│   │       └── webview/   → Desktop webview (wry + tao)
+│   │
+│   ├── orm/               → Standalone ORM (zero framework deps)
+│   │   └── crates/
+│   │       ├── orm/       → QueryBuilder, Schema, Migration
+│   │       ├── pg/        → PostgreSQL driver
+│   │       ├── mysql/     → MySQL driver
+│   │       └── sqlite/    → SQLite driver (bundled)
+│   │
+│   ├── viontest/          → Standalone testing framework
+│   │   └── crates/
+│   │       └── viontest/  → Test runner, assertions, arch testing
+│   │
+│   ├── ui/                → (Future) Native UI framework
+│   └── engine/            → (Future) Game engine
+│
+├── examples/ (workspace)
+│   ├── viontin-zero/      → Minimal starter
+│   └── viontin-alpha/     → Feature demo
+│
+└── docs/                  → Documentation
+```
+
+### 6.2 Crate Dependency Graph
+
+```
+                    ┌─────────────────────────────────────────────┐
+                    │               viontin (meta-crate)           │
+                    │     re-exports: core, cli, macros            │
+                    │     depends on: framework, gems, tui         │
+                    └─────────────────────────────────────────────┘
+                                   │
+            ┌──────────────────────┼──────────────────────┐
+            ▼                      ▼                      ▼
+┌──────────────────────┐ ┌──────────────────┐ ┌──────────────────────┐
+│  framework    │ │  viontin-tui      │ │  viontin-cli         │
+│  All layers:        │ │  Terminal UI      │ │  Binary (45 cmds)   │
+│  Contract + Runtime │ │  (standalone)     │ │                      │
+│  Infrastructure     │ │  Prompts/styling  │ └──────────────────────┘
+└──────────────────────┘ └──────────────────┘
+            │
+            ├───────────────────────┬───────────────────────┐
+            ▼                       ▼                       ▼
+┌──────────────────────┐ ┌──────────────────────┐ ┌──────────────────────┐
+│  viontin-macros      │ │  gems         │ │  orm (optional)   │
+│  Proc macros         │ │  Plugin registry      │ │  ORM core + drivers  │
+│  #[domain] etc.      │ │  WASM loader          │ │  pg/mysql/sqlite     │
+└──────────────────────┘ └──────────────────────┘ └──────────────────────┘
+```
+
+### 6.3 Feature Flags
+
+| Feature | Cargo Flag | Layer | Description |
+|---------|-----------|-------|-------------|
+| Async server | `async` | Runtime | Tokio-based async HTTP server |
+| Domain-Driven | `domain` | Infra | DDD building blocks, boundary checking |
+| ORM integration | `orm` | Runtime | Enable `orm` crate via framework |
+| HTTP Client | `http-client` | Runtime | `ureq`-based sync HTTP client |
+| Graceful Shutdown | `shutdown` | Infra | SIGTERM/SIGINT handling (default) |
+| AES Encryption | `aes` | Runtime | AES-256-GCM via `aes-gcm` |
+| SMTP Mail | `smtp` | Runtime | SMTP email transport via `lettre` |
+
+---
+
+## 7. Data Layer — ORM & Storage
+
+### 7.1 Three-Tier Data Architecture
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  Application Code                                         │
+│  Entity/Model structs, Repository pattern, QueryBuilder  │
+├──────────────────────────────────────────────────────────┤
+│  ORM Core (standalone — zero framework deps)              │
+│  QueryBuilder · Schema · Migration · Connection traits    │
+├──────────────────────────────────────────────────────────┤
+│  Database Drivers                                          │
+│  pg (PostgreSQL) · mysql (MySQL) · sqlite (SQLite)        │
+└──────────────────────────────────────────────────────────┘
+```
+
+### 7.2 Design Decisions
+
+- **No active-record Model layer** — use `QueryBuilder` directly
+- **Switch databases by changing one config value** — traits abstract drivers
+- **Standalone ORM crate** — use with or without Viontin framework
+- **Laravel Eloquent-style query builder** — familiar API for web developers
 
 ```rust
-trait GemFacade {
-    fn meta(&self) -> &GemMeta;
-    fn before_build(&self) -> Result<()> { Ok(()) }
-    fn after_build(&self) -> Result<()> { Ok(()) }
-}
-
-pub enum GemKind {
-    Integration, Platform, Database, Auth, DevTool, Theme,
-    Custom(&'static str),
-}
+// Same code, different databases:
+let users = QueryBuilder::table(&conn, "users")
+    .where_eq("active", true)
+    .order_by("created_at", "DESC")
+    .limit(10)
+    .get()?;
 ```
-
-### 11.3 Example: TailwindCSS Gem
-
-The `tailwind` crate implements `GemFacade` to:
-1. Read `tailwind.config.toml` from project root
-2. Invoke the Tailwind CLI via `tailwind-rs-core`
-3. Generate compiled CSS into the output directory
-4. Hook into `before_build()` phase
 
 ---
 
-## 12. ORM Architecture
+## 8. Layers & Application Types
 
-### 12.1 Optional ORM — No Lock-In
+The same infrastructure kernel powers FOUR application types:
 
-Viontin Framework has **no built-in ORM dependency**. The framework provides lightweight db types (`framework::db`) and the standalone `orm` crate is completely optional.
-
-**Three choices:**
-
-| Approach | How | Use Case |
-|----------|-----|----------|
-| **Built-in** | `framework::db` (always available) | Simple queries, no ORM needed |
-| **Standalone ORM** | `orm = { path = "..." }` | Full-featured query builder, standalone |
-| **Via framework** | `features = ["orm"]` on `viontin` | Framework + ORM convenience |
-
-```
-┌──────────────────────────────────────┐
-│  orm (standalone, optional)  │
-│                                      │
-│  QueryBuilder (Laravel Eloquent-     │
-│    style, no model required)         │
-│  Schema  Blueprint  Migration        │
-│  DatabaseType  DriverCapabilities    │
-│  NoSqlConnection  DriverRegistry     │
-├──────────────────────────────────────┤
-│  Driver crates (pg, mysql, sqlite)   │
-│  (each depends on orm only)  │
-└──────────────────────────────────────┘
-```
-
-### 12.2 Driver Selection
-
-Drivers implement `Connection` and `ConnectionPool` traits from `orm`. The ORM provides `QueryBuilder`, `Schema`, and `Migration` on top. Switching databases means changing the driver crate in `Cargo.toml` and updating the connection config. No model/active-record layer — use the query builder directly to avoid architecture lock-in.
-
----
-
-## 13. Error Handling
-
-### 13.1 Core Error Types
+### 8.1 Web Server
 
 ```rust
-#[derive(Debug, Clone, thiserror::Error)]
-pub enum FrameworkError {
-    #[error("{0}")]
-    Internal(String),
-}
+boot()
+    .get("/", handler)
+    .post("/submit", submit)
+    .middleware(LoggerMw)
+    .provider(DatabaseProvider)
+    .serve("127.0.0.1:3000");
 ```
 
-`FrameworkError` is the unified error type across all framework modules. It currently has a single `Internal` variant wrapping string messages — planned to be expanded with typed variants (`Config`, `Io`, `Parse`, `Validation`, `Authentication`, `NotFound`, etc.).
+### 8.2 CLI Tool
 
 ```rust
-pub type Result<T> = std::result::Result<T, FrameworkError>;
+boot()
+    .command(DeployCommand)
+    .command(RollbackCommand)
+    .command(BackupCommand)
+    .run_with(|_ctx| {});
 ```
 
-### 13.2 HTTP Error Handling (Planned)
-
-HTTP-specific error types (`HttpError`, `ErrorReport` with actionable solutions) are planned for future releases but not yet implemented. Currently, error responses are constructed manually:
+### 8.3 TUI Application
 
 ```rust
-fn handler(_req: Request) -> Response {
-    // Returns a 500 page
-    Response::html("<h1>Error</h1>").status(StatusCode::SERVER_ERROR)
-
-    // Returns a 404 page
-    Response::html("<h1>Not Found</h1>").status(StatusCode::NOT_FOUND)
-}
+boot()
+    .command(InteractiveWizard)
+    .run_with(|ctx| {
+        // ctx.cli() dispatches the TUI command
+    });
 ```
 
----
-
-## 14. Debugging & Profiling
-
-| Tool | Function | Description |
-|------|----------|-------------|
-| `dump()` | `dump!(expr)` | Print variable with file:line label |
-| `dd()` | `dd!(expr)` | Dump and exit (die) |
-| `Profiler` | `Profiler::new()` | Manual timing: `.start("label")` / `.end("label")` |
-| `benchmark()` | `benchmark(fn, iterations)` | Measure execution time |
-
-Debug mode is activated automatically when `Environment::Local` or `APP_DEBUG=true` is detected.
-
----
-
-## 15. Architectural Testing
-
-### 15.1 ArchRule System
+### 8.4 Batch/Daemon Processor
 
 ```rust
-trait ArchRule {
-    fn name(&self) -> &str;
-    fn check(&self, target: &str) -> ArchResult;
-}
+boot()
+    .command(ProcessQueueCommand)
+    .provider(QueueWorkerProvider)
+    .entry(|ctx| {
+        let app = ctx.into_inner();
+        loop {
+            // process queue jobs forever
+        }
+    })
+    .run();
 ```
 
-**Built-in rules:**
+All four share the same DI container, config system, logging, events, and service providers.
 
-| Rule | Purpose |
-|------|---------|
-| `IsPascalCase` | Enforce PascalCase naming |
-| `IsCamelCase` | Enforce camelCase naming |
-| `IsSnakeCase` | Enforce snake_case naming |
-| `IsKebabCase` | Enforce kebab-case naming |
-| `DoesNotDependOn("mod")` | Forbid importing a module |
-| `MustDependOn("mod")` | Require importing a module |
-| `EndsWith("suffix")` | Enforce name suffix |
-| `StartsWith("prefix")` | Enforce name prefix |
+---
 
-### 15.2 ArchChecker
+## 9. Module Dependency Map
 
-```rust
-let mut checker = ArchChecker::new();
-checker.add(IsPascalCase);
-checker.add(DoesNotDependOn::new("deprecated_module"));
-checker.add(EndsWith::new("Controller"));
+```
+Infrastructure Kernel Layer:
+  app → config, env, log, queue, events
+  auth → support::hash
+  csrf → session
+  encryption → support (Encrypter trait)
+  notif → mail (Envelope)
+  rate → cache (CacheDriver)
+  gem::validator → validator, semver
 
-let result = checker.check("MyController");
-// result.passed() → bool
-// result.errors() → Vec<&ArchFinding>
-// result.has_errors() → bool
+Runtime Layer:
+  route → http (Method), server (Handler)
+  route::provider → app (ServiceProvider), route
+  server → http (Request, Response, etc.)
+  ws → http, server (Router)
+  cli::output → log (LogChannel)
+  cli::input → cli::command (Signature)
+  cli::kernel → cli::command, cli::input, cli::exit, cli::output
+  semver::compat → semver::version, semver::constraint
+  semver::constraint → semver::version
 
-let result = checker.check_all(vec!["ModA", "ModB", "ModC"]);
-print_arch_result(&result);
+Standalone Modules (zero internal deps):
+  collection · env · fs · page · path · support · debug · testing::arch
 ```
 
-Errors are categorized by `ArchSeverity` (Error or Warning) and can be printed in a human-readable format via `print_arch_result()`.
+---
+
+## 10. Key Design Decisions
+
+| Decision | Rationale | Layer |
+|----------|-----------|-------|
+| **Zero external HTTP deps** | Full protocol control, no bloat, educational clarity | Runtime |
+| **Hand-rolled SHA-1 + Base64** | No external crypto for WebSocket handshake | Runtime |
+| **TypeId-based DI container** | Type-safe, no string keys, zero downcasting errors | Infra Kernel |
+| **Two-phase boot** | All providers register before any reads dependencies | Infra Kernel |
+| **Facade pattern for drivers** | Clean API, swappable backends, zero abstraction cost | Runtime |
+| **Laravel-inspired CLI signatures** | Familiar ergonomics for web developers | Infra Kernel |
+| **Regex-based arch checking** | Simple, no proc-macros, no codegen, no external parser | Infra Kernel |
+| **JSON config with env overlay** | Familiar pattern, zero schema definitions | Infra Kernel |
+| **Per-connection thread model** | Simplicity over async at this stage | Runtime |
+| **Separate ORM crate family** | Pay only for what you use — no SQL in framework core | Data |
+| **Minimal proc macros (2 only)** | Fast compilation, no tooling friction | Foundation |
+| **Single meta-crate import** | One dependency unlocks entire platform | Platform |
+| **Standalone CLI binary** | 45 commands, zero cargo at runtime | Platform |
+| **Actionable error reports** | Every error includes `solution` field | Infra Kernel |
 
 ---
 
-## 16. Security Model
+## 11. Layer Summary
 
-| Feature | Implementation | Notes |
-|---------|---------------|-------|
-| **CSRF** | Token-based, session-backed | `CsrfManager` generates/validates per-session tokens |
-| **Authentication** | `AuthGuard` trait | Built-in: `BasicGuard` (HTTP Basic), `SessionGuard` (session-backed) |
-| **Session** | Session-backed state | `MemorySession` (dev), `FileSession` (file-backed) |
-| **Encryption** | `Encrypter` trait | `SimpleEncrypter` is XOR-based — dev only. Production should use AES via gems |
-| **Hashing** | `Hasher` trait | `SimpleHasher` for dev. Production-grade hashing via gems |
-| **WebSocket** | Origin validation | Basic origin checking in handshake |
+```
+Layer                    Crate(s)              Dependencies
+─────                    ────────              ────────────
+PLATFORM                 viontin (meta-crate)  All layers below
+│                        viontin-cli           tui + framework
+│                        viontin-macros        syn + quote + proc-macro2
+│                        viontin-tui           framework + crossterm
+│                        (standalone)
+│
+├── APPLICATION          Your code             Infrastructure Kernel
+│   (routes, controllers, services, domains)
+│
+├── INFRASTRUCTURE       viontin-framework     Runtime + Contract
+│   KERNEL               (app, config, log,
+│    Boot, DI, Providers  events, cli, csrf,
+│    Config, Errors, Gems rate, schedule, lang,
+│    CLI, Middleware,     debug, errors, domain,
+│    Events, Scheduling   testing, gem)
+│
+├── RUNTIME              viontin-framework     Contract
+│   EXECUTION            (server, routing,
+│    HTTP, WebSocket,     caching, sessions,
+│    Cache, Session,      storage, mail, notif,
+│    Storage, Mail,       db, fs)
+│    Queue, DB, FS
+│
+├── CONTRACT             viontin-framework     Core Foundation
+│   LAYER                (types module group:
+│    Traits & Types       auth, cache, config,
+│                         database, env, events,
+│                         http, log, mail, notif,
+│                         page, queue, rate,
+│                         route, schedule, semver,
+│                         session, storage,
+│                         support, validator, testing)
+│
+├── FOUNDATION           viontin-core          serde + thiserror
+│   Shared Types,
+│   FrameworkError
+│
+└── EXTENSIONS (opt)     gems / orm / ui       framework + linkme
+    Gems, ORM, Drivers   / pg / mysql / sqlite  / orm
+```
 
 ---
 
-## 17. Key Design Decisions
-
-| Decision | Rationale |
-|----------|-----------|
-| **Zero external HTTP dependencies** | Full control over protocol, no dependency bloat, educational clarity |
-| **Hand-rolled SHA-1, Base64** | No external crypto deps for WebSocket handshake |
-| **TypeId-based DI container** | Type-safe, no string keys, no runtime downcasting errors |
-| **Two-phase boot (register → boot)** | Ensures all providers are registered before any reads dependencies |
-| **Facade pattern for drivers** | Clean API for users, swappable backends, zero-cost abstraction |
-| **Laravel-inspired CLI signatures** | Familiar ergonomics for web developers entering Rust |
-| **Regex-based arch checking** | Simple, no proc-macros, no codegen, no external parser |
-| **JSON config with env overlay** | Familiar pattern, zero additional schema definitions needed |
-| **Per-connection thread model** | Simplicity over async complexity at this stage of the framework |
-| **Separate ORM crate family** | Users pay only for what they use — no SQL deps in framework core |
-
----
-
-## 18. Example: Full Boot Sequence
+## 12. Example: Full Boot Sequence
 
 ```rust
 use viontin::{boot, domain, html};
@@ -917,9 +863,9 @@ use viontin_gem_tailwind::Tailwind;
 
 fn main() {
     boot()
-        .provider(MyDatabaseProvider)      // register service provider
-        .command(MyCustomCommand)          // register CLI command
-        .gem(Tailwind::load())             // register TailwindCSS plugin
+        .provider(MyDatabaseProvider)      // Infrastructure: register provider
+        .command(MyCustomCommand)          // Infrastructure: register CLI command
+        .gem(Tailwind::load())             // Infrastructure: register plugin
         .get("/", |_req| Response::html(html!("pages/index.html")))
         .post("/submit", submit_handler)
         .ws("/chat", ChatHandler)
@@ -927,68 +873,22 @@ fn main() {
 }
 ```
 
-This single sequence:
-1. Initializes the DI container with 5 built-in providers + user provider
-2. Registers CLI commands for `viontin my-command` usage
-3. Registers TailwindCSS gem for build-time CSS processing
-4. Wires HTTP routes (GET, POST) and WebSocket endpoint
-5. Starts the TCP server on port 3000
-
----
-
-## 19. Appendix: Quick Reference
-
-### 19.1 Module Index
-
-| Module | Layer | Dependencies |
-|--------|-------|-------------|
-| `app` | Core | config, env, log, queue, events |
-| `auth` | Core | support::hash |
-| `cache` | Runtime | — |
-| `cli` | Runtime | — |
-| `collection` | Types | — |
-| `config` | Core | env |
-| `csrf` | Runtime | session, support |
-| `db` | Types/Runtime | — |
-| `debug` | Runtime | — |
-| `domain` | Runtime | — |
-| `encryption` | Core | support |
-| `env` | Types | — |
-| `error` | Types | — |
-| `errors` | Runtime | http, error |
-| `events` | Types/Core | — |
-| `fs` | Runtime | — |
-| `gem` | Runtime | validator, semver |
-| `http` | Types | — |
-| `lang` | Runtime | — |
-| `log` | Types/Core | — |
-| `mail` | Types/Runtime | — |
-| `notif` | Types/Runtime | mail |
-| `page` | Types | — |
-| `path` | Runtime | — |
-| `queue` | Types/Core | — |
-| `rate` | Types/Runtime | cache |
-| `route` | Types/Runtime | http, server |
-| `schedule` | Types/Runtime | — |
-| `semver` | Types | — |
-| `server` | Runtime | http |
-| `session` | Types/Runtime | — |
-| `storage` | Types/Runtime | — |
-| `support` | Types | — |
-| `testing` | Types/Runtime | — |
-| `validator` | Types/Core | — |
-| `ws` | Runtime | http, server |
-
-### 19.2 Crate Dependency Table
+What happens:
 
 ```
-viontin (meta-crate)
-  ├── framework  (serde, serde_json, thiserror, glob)
-  ├── viontin-tui        (framework, crossterm, terminal_size, unicode-width)
-  ├── viontin-cli        (viontin-tui, framework, notify, regex)
-  ├── gems       (framework, linkme)
-  ├── [optional] orm     (standalone, no framework dependency)
-  ├── [optional] pg  (orm only)
-  ├── [optional] mysql (orm only)
-  └── [optional] sqlite (orm only)
+Foundation   → viontin-core types available
+Contract     → traits for HTTP, cache, events, etc. defined
+Runtime      → TCP server ready, cache drivers loaded
+Infra Kernel → DI container initialized
+             → .env loaded (EnvProvider)
+             → config/*.json loaded (ConfigProvider)
+             → Logger initialized (LogProvider)
+             → Queue/Events singletons bound
+             → User provider registered & booted
+             → CLI commands registered
+             → Gem plugins initialized (TailwindCSS processes CSS)
+             → Router built, middleware chain attached
+             → WebSocket routes attached
+Platform     → TCP listener bound to 127.0.0.1:3000
+             → Per-connection thread pool ready
 ```

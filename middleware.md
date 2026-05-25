@@ -1,4 +1,5 @@
 # Middleware
+> Last updated: 2026-05-25
 
 **Module:** `viontin_framework::middleware`
 
@@ -147,20 +148,36 @@ boot()
 
 ---
 
-## Built-in Middleware Ideas
+## Built-in Middleware
 
-The framework provides no built-in middleware — here are common ones to build:
+| Middleware | Constructor | Purpose |
+|-----------|-------------|---------|
+| `CorsMiddleware` | `CorsMiddleware::permissive()` or `CorsMiddleware::origin("https://app.com")` | Cross-Origin Resource Sharing — configure allowed origins, methods, headers, credentials. Handles OPTIONS preflight automatically. |
+| `PanicRecovery` | `PanicRecovery` | Catch panics from downstream handlers, return 500 instead of crashing. |
+| `RequestId` | `RequestId` | Attach unique `X-Request-Id` to every request/response. |
+| `RateLimitMiddleware` | `RateLimitMiddleware::new("api", 100, 60)` | Token bucket rate limiting per key prefix. Returns 429 when exceeded. |
 
-| Middleware | Purpose |
-|-----------|---------|
-| Logger | Log request method, path, duration |
-| CORS | Set CORS headers |
-| Auth | Validate session/token, return 401 |
-| CSRF | Validate CSRF token on state-changing methods |
-| Inertia | InertiaJS protocol bridge |
-| Static Files | Serve files from directory |
-| Compress | Gzip/Brotli response compression |
-| Rate Limit | Rate limiting per IP/user |
+### CorsMiddleware Example
+
+```rust
+use viontin::prelude::*;
+
+fn main() {
+    boot()
+        .middleware(CorsMiddleware::permissive())          // allow all origins
+        .get("/api/users", |_| Response::json(&users))
+        .serve("127.0.0.1:3000");
+}
+```
+
+Or restrict to a specific origin:
+
+```rust
+boot()
+    .middleware(CorsMiddleware::origin("https://myapp.com")
+        .with_allowed_methods(&["GET", "POST"])
+        .with_credentials(true))
+```
 
 ---
 
@@ -169,25 +186,12 @@ The framework provides no built-in middleware — here are common ones to build:
 ```rust
 use viontin::prelude::*;
 
-#[derive(Debug)]
-struct CorsMiddleware;
-
-impl Middleware for CorsMiddleware {
-    fn handle(&self, req: &mut Request, next: &dyn Fn(&mut Request) -> Response) -> Response {
-        let mut res = next(req);
-        res.headers.set("Access-Control-Allow-Origin", "*");
-        res.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
-        res
-    }
-}
-
 fn main() {
     boot()
-        .middleware(LoggerMiddleware)
-        .middleware(CorsMiddleware)
-        .get("/api/users", |_| {
-            Response::json(&serde_json::json!([{"id": 1, "name": "Alice"}])).unwrap()
-        })
+        .middleware(RequestId)
+        .middleware(CorsMiddleware::permissive())
+        .middleware(PanicRecovery)
+        .get("/api/health", |_| Response::json(&serde_json::json!({"status": "ok"})))
         .serve("127.0.0.1:3000");
 }
 ```

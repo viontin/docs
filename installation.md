@@ -1,4 +1,5 @@
 # Installation
+> Last updated: 2026-05-25
 
 > **Experimental Project** — This is an experimental project under active development. Not recommended for production use.
 
@@ -55,7 +56,7 @@ Or reference individual crates:
 [dependencies]
 viontin-core = { path = "path/to/products/viontin/crates/core" }
 framework = { path = "path/to/products/framework/crates/framework" }
-viontin-tui = { path = "path/to/products/framework/crates/tui", features = ["prompts"] }
+viontin-tui = { path = "path/to/products/tui", features = ["prompts"] }
 ```
 
 ---

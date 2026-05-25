@@ -1,4 +1,5 @@
 > **Experimental Project** — This is an experimental project under active development. Not recommended for production use.
+> Last updated: 2026-05-25
 
 # HTTP Primitives
 
@@ -154,7 +155,7 @@ Response::ok();                       // 200
 Response::not_found();                // 404
 Response::html("<h1>Hello</h1>");     // text/html
 Response::text("plain");              // text/plain
-Response::json(&my_struct)?;          // application/json
+Response::json(&my_struct);           // application/json — returns Response directly
 ```
 
 ### Builder Methods

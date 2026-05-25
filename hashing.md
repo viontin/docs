@@ -1,4 +1,5 @@
 > **Experimental Project** — This is an experimental project under active development. Not recommended for production use.
+> Last updated: 2026-05-25
 
 # Hashing
 
@@ -51,7 +52,7 @@ hash output: "1a2b3c4f:abcdef1234567890"
               └─salt─┘ └───hash────┘
 ```
 
-> **Warning:** `SimpleHasher` uses `std::hash::DefaultHasher` which is **NOT cryptographically secure**. It is suitable for development and testing only. For production, implement `Hasher` with bcrypt, argon2, or PBKDF2.
+> **Warning:** `SimpleHasher` uses `std::hash::DefaultHasher` which is **NOT cryptographically secure**. It is suitable for development and testing only. For production, use `BcryptHasher` instead.
 
 ---
 
@@ -92,39 +93,37 @@ let token = random_token(32);
 
 ---
 
+## BcryptHasher (built-in)
+
+Production-ready password hasher using bcrypt. Available as a default (non-optional) dependency — no feature flag needed:
+
+```rust
+use viontin::prelude::*;
+
+let hasher = BcryptHasher::default();   // cost = 10
+let hasher = BcryptHasher::new(12);     // custom cost (4-14)
+
+let hash = hasher.hash("user_password");
+assert!(hasher.verify("user_password", &hash));
+assert!(!hasher.verify("wrong_password", &hash));
+```
+
+> `BcryptHasher` uses the `bcrypt` crate under the hood. Salts are generated automatically. The cost factor is clamped between 4 and 14.
+
 ## Custom Hasher
 
-For production, implement `Hasher` with a secure algorithm:
+For production with argon2 or PBKDF2, implement `Hasher` manually:
 
 ```rust
 use viontin::prelude::*;
 
 #[derive(Debug)]
-struct BcryptHasher;
+struct Argon2Hasher;
 
-impl Hasher for BcryptHasher {
-    fn name(&self) -> &str { "bcrypt" }
-
-    fn hash(&self, value: &str) -> String {
-        // bcrypt::hash(value, DEFAULT_COST)
-        todo!("Implement with bcrypt crate")
-    }
-
-    fn verify(&self, value: &str, stored_hash: &str) -> bool {
-        // bcrypt::verify(value, stored_hash)
-        todo!("Implement with bcrypt crate")
-    }
-
-    fn needs_rehash(&self, hash: &str) -> bool {
-        // Check if hash uses outdated cost factor
-        false
-    }
+impl Hasher for Argon2Hasher {
+    fn name(&self) -> &str { "argon2" }
+    // Implement using the `argon2` crate
 }
-
-// Usage
-let hasher = BcryptHasher;
-let hash = hasher.hash("user_password");
-assert!(hasher.verify("user_password", &hash));
 ```
 
 ---
@@ -136,10 +135,9 @@ use viontin::prelude::*;
 use std::collections::HashMap;
 
 let guard = BasicGuard::new("web", |username, password| {
-    // In production: fetch user from database
     let stored_hash = get_password_hash(username);
-    SimpleHasher.verify(password, &stored_hash)
-}).with_hasher(SimpleHasher);
+    BcryptHasher::default().verify(password, &stored_hash)
+}).with_hasher(BcryptHasher::default());
 
 let mut auth = Auth::new();
 auth.register("web", guard);
@@ -158,14 +156,14 @@ let result = auth.attempt(HashMap::from([
 use viontin::prelude::*;
 
 fn main() {
-    // Hash a password
+    // Hash a password (production: use BcryptHasher)
     let password = "correct-horse-battery-staple";
-    let hash = SimpleHasher.hash(password);
+    let hash = BcryptHasher::default().hash(password);
     println!("Hash: {}", hash);
 
     // Verify
-    assert!(SimpleHasher.verify(password, &hash));
-    assert!(!SimpleHasher.verify("wrong password", &hash));
+    assert!(BcryptHasher::default().verify(password, &hash));
+    assert!(!BcryptHasher::default().verify("wrong password", &hash));
 
     // Generate tokens
     let api_key = random_token(48);

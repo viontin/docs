@@ -1,4 +1,5 @@
 > **Experimental Project** — This is an experimental project under active development. Not recommended for production use.
+> Last updated: 2026-05-25
 
 # Localization (i18n)
 

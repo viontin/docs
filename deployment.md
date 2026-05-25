@@ -1,4 +1,5 @@
 # Deployment
+> Last updated: 2026-05-25
 
 > **Status:** This guide covers deploying Viontin applications to production. The framework is experimental (v0.1.0) — deployment patterns will evolve.
 

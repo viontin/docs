@@ -1,4 +1,5 @@
 # ORM
+> Last updated: 2026-05-25
 
 **Crate:** `orm`  
 **Standalone:** Zero dependencies — does not require `framework`

@@ -1,4 +1,5 @@
 # Controller
+> Last updated: 2026-05-25
 
 **Module:** `viontin_framework::controller` (requires `orm` feature)  
 **Trait:** `Controller<M: Entity + Serialize>`  

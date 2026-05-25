@@ -1,4 +1,5 @@
 > **Experimental Project** — This is an experimental project under active development. Not recommended for production use.
+> Last updated: 2026-05-25
 
 # Viontin CLI Reference
 
@@ -194,7 +195,8 @@ Known viontin packages are resolved automatically when inside the monorepo:
 |---------|------|
 | `viontin` | `crates/viontin` |
 | `framework` | `crates/framework` |
-| `viontin-tui` | `crates/tui` (with `prompts` feature) |
+| `viontin-tui` | `../../../tui` (with `prompts` feature) |
+| `viontin-macros` | `../macros` |
 | `orm` | `../orm/crates/orm` |
 | `gems` | `../gems/crates/gems` |
 

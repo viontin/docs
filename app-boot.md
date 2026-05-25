@@ -1,4 +1,5 @@
 # Application Boot
+> Last updated: 2026-05-25
 
 **Module:** `viontin_framework::app`  
 **Facade:** `viontin::boot()`

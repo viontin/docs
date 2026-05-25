@@ -1,4 +1,5 @@
 # Getting Started
+> Last updated: 2026-05-25
 
 > **Experimental Project** — This is an experimental project under active development. APIs are unstable, documentation is incomplete, and breaking changes may occur without notice. Not recommended for production use.
 

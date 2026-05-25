@@ -1,6 +1,7 @@
 # Viontin
 
 > **Experimental Project** — This is an experimental project under active development. APIs are unstable, documentation is incomplete, and breaking changes may occur without notice. Not recommended for production use.
+> Last updated: 2026-05-25
 
 **Cloud-Native Rust Framework** — build, deploy, and scale microservices, APIs, and CLI tools.
 
@@ -35,6 +36,7 @@
 | HTTP Client | `http-client` | `ureq`-based sync HTTP client for external APIs |
 | Graceful Shutdown | `shutdown` | SIGTERM/SIGINT handling (enabled by default) |
 | AES Encryption | `aes` | AES-256-GCM encryption via `aes-gcm` crate |
+| SMTP Mail | `smtp` | SMTP email transport via `lettre` |
 
 **No vendor lock-in:** The framework works without `orm`. Use it, or any other ORM, or none at all.
 
@@ -47,16 +49,16 @@ Viontin is a **cloud-native Rust framework** for building microservices, APIs, C
 ```
 viontin/
 ├── products/
-│   ├── viontin/            # Core + CLI + Facade meta-crate
+│   ├── viontin/            # Core + CLI + Facade meta-crate + macros
 │   │   └── crates/
 │   │       ├── core/        # Shared contracts & types (zero deps: serde, thiserror)
 │   │       ├── viontin/     # Meta-crate: re-exports everything
-│   │       └── cli/         # CLI tool: 45 commands, zero cargo dependency
+│   │       ├── cli/         # CLI tool: 45 commands, zero cargo dependency
+│   │       └── macros/      # Proc macros: #[domain], #[domain_event]
 │   ├── framework/          # Framework implementations & patterns
 │   │   └── crates/
-│   │       ├── framework/   # Core library: HTTP, ORM, patterns, infrastructure
-│   │       ├── macros/      # Proc macros: #[domain], #[domain_event]
-│   │       └── tui/         # TUI toolkit: prompts, styling, ANSI
+│   │       └── framework/   # Core library: HTTP, ORM, patterns, infrastructure
+│   ├── tui/                # TUI toolkit: prompts, styling, ANSI (standalone)
 │   ├── gems/               # Plugin system (Gems)
 │   │   └── crates/
 │   │       ├── gems/        # Gem registry & plugin loader
@@ -87,18 +89,26 @@ viontin/
 ## Platform Architecture
 
 ```
-                     ┌──────────────────────────────────────────────┐
-                     │               viontin (meta-crate)            │
-                     │      re-exports everything for end users       │
-                     └──────────────────────────────────────────────┘
-                                        │
-              ┌─────────────────────────┼─────────────────────────────┐
-              │                         │                             │
-              ▼                         ▼                             ▼
-   ┌──────────────────┐   ┌──────────────────────┐   ┌──────────────────┐
-   │  viontin_framework│   │  viontin-cli          │   │  viontin-tui     │
-   │  (core library)   │   │  45 commands           │   │  Terminal UI     │
-   └──────────────────┘   └──────────────────────┘   └──────────────────┘
+                      ┌──────────────────────────────────────────────┐
+                      │               viontin (meta-crate)            │
+                      │      re-exports everything for end users       │
+                      │      contains: core, cli, macros              │
+                      └──────────────────────────────────────────────┘
+                                         │
+               ┌─────────────────────────┼─────────────────────────────┐
+               │                         │                             │
+               ▼                         ▼                             ▼
+    ┌──────────────────┐   ┌──────────────────────┐   ┌──────────────────┐
+    │  viontin_framework│   │  viontin-cli          │   │  viontin-tui     │
+    │  (core library)   │   │  45 commands           │   │  Terminal UI     │
+    └──────────────────┘   └──────────────────────┘   └──────────────────┘
+               │
+               ▼
+    ┌──────────────────┐
+    │  viontin-macros   │
+    │  #[domain] proc-  │
+    │  macros           │
+    └──────────────────┘
               │
    ┌──────────┼──────────┐
    │          │          │
