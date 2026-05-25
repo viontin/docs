@@ -58,18 +58,7 @@ Only `SyncQueue` exists — jobs execute synchronously in the current thread. No
 
 ---
 
-### D-001: Migration runner does not actually execute SQL
 
-**Location:** `viontin-orm/src/migration.rs`  
-**Type:** Non-functional feature
-
-`Migrator::run()` only prints `executing...` and marks migrations as applied in memory. It never calls `Connection::execute()` against the database. There is no `_migrations` tracking table.
-
-**Impact:** The migration system is entirely decorative. Developers must run schema changes manually.
-
-**Fix:** Have `Migrator::run()` execute `migration.up` SQL via `Connection::execute()`. Create a `_migrations` tracking table automatically. Check already-applied migrations before running.
-
----
 
 ### D-002: Error messages are not actionable
 
@@ -154,6 +143,38 @@ No CLI command to scaffold migration files with timestamps. Developers must writ
 Developers cannot see what SQL queries are executed, how long they take, or how many queries per request. Database optimization is blind.
 
 **Fix:** Add a `QueryLogMiddleware` or `DB::listen()` callback that logs queries + duration at `debug` level. Also expose via a `Profiler`-style report.
+
+---
+
+### D-008: Feedback loop — no hot reload
+
+`viontin dev` does not watch source files. Every code change requires manual `Ctrl+C` + `cargo run`. This breaks flow state and compounds Rust's compile time.
+
+**Fix:** Integrate `notify` (already in CLI deps) to watch `src/` for changes and auto-restart the process. Same pattern as `cargo-watch`.
+
+---
+
+### D-009: Test setup is too heavy
+
+Writing tests requires spinning up a full database, mocking multiple dependencies, and writing boilerplate. Most developers skip testing because the setup cost outweighs the perceived benefit. No `TestClient` for HTTP testing, no in-memory SQLite for repository testing, no factory for test data.
+
+**Fix:** Provide `TestClient` that routes requests through the framework without a TCP listener. Provide `MemoryRepository` default implementation. Integrate `SqlitePool::memory()` with test helpers.
+
+---
+
+### D-010: Documentation drifts from code
+
+Doc comments and markdown files can become stale as APIs evolve. The `route::get()` metadata-only registration is a documented API that silently does nothing — the real handler requires `route::register_handler()`. Developers reading docs find patterns that don't work.
+
+**Fix:** Add documentation tests (`/// ```rust`). Mark deprecated or incomplete APIs with `#[deprecated]`. CI should fail if doc examples don't compile.
+
+---
+
+### D-011: Deployment documentation missing
+
+No documented path from `cargo build` to production. Environment configuration, database migrations, secret management, process supervision (systemd, Docker), and reverse proxy setup are undocumented. Developers must figure out deployment themselves.
+
+**Fix:** Write deployment guide covering Dockerfile, systemd service, env vars, migration strategy, and reverse proxy (nginx/Caddy) configuration.
 
 ---
 
