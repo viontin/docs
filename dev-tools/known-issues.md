@@ -135,9 +135,9 @@ The following modules exceed the SoC convention limit (>200 lines / >1 screen) a
 
 | Module | Lines | Suggested Split |
 | `framework/src/encryption/mod.rs` | 203 | **RESOLVED** — split into `xor.rs` + `aes.rs` |
-| `framework/src/controllers/mod.rs` | 202 | `mod.rs` (Controller trait) + `default.rs` (DefaultController) |
-| `framework/src/rate_limit/mod.rs` | 222 | `mod.rs` (RateLimiter facade) + `token_bucket.rs` (TokenBucketLimiter) |
-| `framework/src/repositories/mod.rs` | 206 | `mod.rs` (Repository trait) + `default.rs` (DefaultRepository) |
+| `framework/src/controllers/mod.rs` | 202 | **RESOLVED** — split into `mod.rs` + `defaults.rs` |
+| `framework/src/rate_limit/mod.rs` | 222 | **RESOLVED** — split into `mod.rs` + `token_bucket.rs` |
+| `framework/src/repositories/mod.rs` | 206 | **RESOLVED** — split into `mod.rs` + `default.rs` |
 | `framework/src/domain/mod.rs` | 182 | `mod.rs` + submodules per DDD building block |
 | `framework/src/localization/mod.rs` | 235 | `mod.rs` (Translator trait) + `json.rs` (JsonTranslator) |
 | `framework/src/route/mod.rs` | 188 | `mod.rs` + `registry.rs` (RouteRegistry) |
