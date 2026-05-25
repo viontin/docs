@@ -334,9 +334,7 @@ Requires Rust 1.85+ (stable February 2025). LTS Linux distributions may ship old
 
 ### M-009: `serde` optional in orm but needed for JSON responses
 
-If `serde` is not enabled, common use cases (returning query results as JSON) require manual serialization.
-
-**Fix:** Enable `serde` by default or document `features = ["serde"]`.
+**Status:** RESOLVED — `orm` feature flag removed. ORM is now a core direct dependency. `serde` integration is always available.
 
 ---
 
@@ -536,7 +534,7 @@ Integrate a template engine (e.g., `minijinja`) for rendering HTML emails with l
 | M-003 | Global singletons prevent testability | 🟡 Major | Open |
 | M-006 | Multiple Cargo.lock files cause dependency drift | 🟡 Major | Open |
 | M-007 | Edition 2024 constrains MSRV | 🟡 Major | Open |
-| M-009 | `serde` optional in orm but needed for JSON responses | 🟡 Major | Open |
+| M-009 | `serde` optional in orm but needed for JSON responses | 🟡 Major | Resolved |
 | M-010 | No structured/JSON logging | 🟡 Major | Open |
 | M-011 | No tracing/span-based observability | 🟡 Major | Open |
 | M-012 | No metrics or `/metrics` endpoint | 🟡 Major | Open |

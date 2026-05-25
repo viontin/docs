@@ -241,7 +241,7 @@ Each file has exactly one `struct` + `impl Trait`. Parent `mod.rs` only declares
 
 2. **Feature flags for alternatives.** Use feature flags only when offering an **alternative implementation** of an existing trait (e.g., `async` Tokio server vs sync server, `aes` AES-256-GCM vs dev-only `SimpleEncrypter`).
 
-3. **Feature flags for heavy deps.** Use feature flags when a dependency pulls in a large dependency tree that most users won't need (e.g., `orm` for SQL drivers, `http-client` for `ureq`).
+3. **Feature flags for heavy deps.** Use feature flags when a dependency pulls in a large dependency tree that most users won't need (e.g., `http-client` for `ureq`).
 
 4. **Forward to the meta-crate.** Every feature flag on `viontin-framework` must be forwarded in `viontin/Cargo.toml` so users can enable it via `viontin = { features = ["..."] }`.
 
@@ -251,7 +251,7 @@ Each file has exactly one `struct` + `impl Trait`. Parent `mod.rs` only declares
 |------|---------|---------|----------|
 | `async` | Tokio-based async HTTP server | No | Alternative implementation |
 | `domain` | DDD building blocks (Domain, AggregateRoot) | No | Alternative implementation |
-| `orm` | ORM integration + SQL drivers | No (default in meta-crate) | Heavy dep |
+| `orm` | Removed — ORM is now a core direct dependency | — | Core (always on) |
 | `http-client` | ureq-based HTTP client | No | Heavy dep |
 | `shutdown` | SIGTERM/SIGINT handling | Yes | Core (default) |
 | `aes` | AES-256-GCM encryption | No | Alternative implementation |
