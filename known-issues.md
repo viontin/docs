@@ -72,6 +72,61 @@ When an error occurs, the framework returns generic messages (`"Internal error"`
 
 ---
 
+### D-012: Contracts and implementations are mixed in one crate
+
+**Location:** `repos/framework/crates/framework/`  
+**Type:** Architecture
+
+`viontin-framework` currently bundles both **contracts** (traits, types) and **implementations** (HTTP server, middleware, caching) in a single crate. This forces consumers like `bezelui` (native UI framework) and `viontin-engine` (game engine) to pull the entire framework — including HTTP server, ORM integration, and middleware — when they only need basic types (config, logging, DI, Entity).
+
+Meanwhile, `viontin-orm` defines its own `Value`, `Row`, `Connection` types that are parallel to `framework::db`'s types. When the `orm` feature is enabled, `framework::db` re-exports from `viontin-orm` to unify them — but this creates a fragile type compatibility layer.
+
+**Proposed fix:** Extract all contracts and shared types into a new `viontin-core` crate with zero or minimal dependencies.
+
+**What goes into `viontin-core`:**
+
+| Category | Items |
+|----------|-------|
+| **Database contracts** | `Connection`, `ConnectionPool`, `Value`, `Row`, `DbConfig`, `DatabaseType`, `DriverCapabilities`, `NoSqlConnection`, `DriverRegistry` |
+| **HTTP contracts** | `Request`, `Response`, `StatusCode`, `Method`, `Headers`, `Uri`, `Cookie` |
+| **Architecture contracts** | `Entity`, `ServiceProvider`, `Container`, `Module`, `ServiceContract`, `FormRequest` |
+| **Messaging contracts** | `Event`, `Listener`, `EventDispatcher`, `Job`, `Mailer`, `Envelope`, `Notification` |
+| **Infrastructure contracts** | `CacheDriver`, `Middleware`, `LogChannel`, `SessionDriver`, `Driver` (storage), `RateLimiterDriver`, `AuthGuard`, `AuthUser`, `Validator` |
+| **Error types** | `FrameworkError`, `Result`, `SourceLocation` |
+| **Utilities** | `Hasher`, `Encrypter` traits, url/str/hash helpers |
+
+**What stays in `viontin-framework`:**
+
+| Category | Items |
+|----------|-------|
+| **Implementations** | HTTP server, Router, MiddlewareChain, CORS/Panic/RateLimit middleware, Boot builder, MemoryCache, FileCache, StdoutLog, MemorySession, BasicGuard, TokenBucketLimiter, SyncQueue, SimpleEncrypter, AesEncrypter |
+| **Patterns** | DefaultService, DefaultController |
+| **Tools** | CLI Kernel, Command trait, TUI toolkit, viontest, debug utilities, i18n, arch checker, WebSocket |
+
+**What stays in `viontin-orm`:**
+
+| Category | Items |
+|----------|-------|
+| **ORM-specific** | QueryBuilder, Schema, Blueprint, Migration, Migrator |
+| **Drivers** | SQLite (rusqlite), PG/MySQL stubs |
+
+**New dependency graph:**
+
+```
+viontin-core  ←── viontin-framework
+     ↑               ↑
+     │               │
+     ├── viontin-orm │
+     └── bezelui     │
+     └── viontin-engine
+```
+
+**Benefit:** `bezelui` and `viontin-engine` depend on `viontin-core` only — no HTTP server, no ORM, no middleware. They get config, logging, DI, Entity, and HTTP types without pulling unnecessary implementations.
+
+**Risk:** Massive migration (every file in framework and ORM changes imports). Mitigation: break into phases — (1) create core, (2) migrate framework, (3) migrate ORM.
+
+---
+
 ## 🟡 Major Issues
 
 ### M-002: `#[allow(dead_code)]` annotations mask unused code
