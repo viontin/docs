@@ -77,7 +77,7 @@ When an error occurs, the framework returns generic messages (`"Internal error"`
 **Location:** `repos/framework/crates/framework/`  
 **Type:** Architecture
 
-`viontin-framework` currently bundles both **contracts** (traits, types) and **implementations** (HTTP server, middleware, caching) in a single crate. This forces consumers like `bezelui` (native UI framework) and `viontin-engine` (game engine) to pull the entire framework — including HTTP server, ORM integration, and middleware — when they only need basic types (config, logging, DI, Entity).
+`viontin-framework` currently bundles both **contracts** (traits, types) and **implementations** (HTTP server, middleware, caching) in a single crate. This forces consumers like `viontin-ui` (native UI framework) and `viontin-engine` (game engine) to pull the entire framework — including HTTP server, ORM integration, and middleware — when they only need basic types (config, logging, DI, Entity).
 
 Meanwhile, `viontin-orm` defines its own `Value`, `Row`, `Connection` types that are parallel to `framework::db`'s types. When the `orm` feature is enabled, `framework::db` re-exports from `viontin-orm` to unify them — but this creates a fragile type compatibility layer.
 
@@ -117,11 +117,11 @@ viontin-core  ←── viontin-framework
      ↑               ↑
      │               │
      ├── viontin-orm │
-     └── bezelui     │
+     └── viontin-ui     │
      └── viontin-engine
 ```
 
-**Benefit:** `bezelui` and `viontin-engine` depend on `viontin-core` only — no HTTP server, no ORM, no middleware. They get config, logging, DI, Entity, and HTTP types without pulling unnecessary implementations.
+**Benefit:** `viontin-ui` and `viontin-engine` depend on `viontin-core` only — no HTTP server, no ORM, no middleware. They get config, logging, DI, Entity, and HTTP types without pulling unnecessary implementations.
 
 **Risk:** Massive migration (every file in framework and ORM changes imports). Mitigation: break into phases — (1) create core, (2) migrate framework, (3) migrate ORM.
 

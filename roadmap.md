@@ -56,9 +56,9 @@ The nearest-term expansion. Viontin's HTTP server, middleware, config, and CLI a
 
 ### Pillar 2: BezelUI — Standalone Native UI Framework
 
-The webview gem (`viontin-gem-webview` with wry + tao) provides the foundation. The full UI framework will live in a **standalone project** named [`bezelui`](https://github.com/viontin/bezelui), separate from Viontin core.
+The webview gem (`viontin-gem-webview` with wry + tao) provides the foundation. The full UI framework will live in a **standalone project** named [`viontin-ui`](https://github.com/viontin/bezelui), separate from Viontin core.
 
-BezelUI will start where `viontin-gem-webview` leaves off — adding window management, declarative component DSL, and cross-platform rendering. It will consume Viontin's service layer (config, auth, logging, storage) via the `viontin` meta-crate, but will not depend on Viontin's HTTP server or ORM.
+Viontin UI will start where `viontin-gem-webview` leaves off — adding window management, declarative component DSL, and cross-platform rendering. It will consume Viontin's service layer (config, auth, logging, storage) via the `viontin` meta-crate, but will not depend on Viontin's HTTP server or ORM.
 
 **Target audience:** Desktop application developers, indie developers.
 
@@ -162,9 +162,9 @@ The Entity pattern and event sourcing from the current domain module already ali
 │  github.com/viontin/framework                                │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
-│  viontin-gem-webview  ──→  bezelui (standalone)              │
+│  viontin-gem-webview  ──→  viontin-ui (standalone)           │
 │  Webview + IPC bridge        Native UI framework             │
-│  (in viontin/gems repo)      github.com/viontin/bezelui     │
+│  (in viontin/gems repo)      github.com/viontin/ui   │
 │                                                              │
 │  viontin (patterns)  ──→  viontin-engine (standalone)        │
 │  Entity, events, DI           ECS + rendering + physics      │
