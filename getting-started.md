@@ -137,9 +137,9 @@ cargo run
 | Guide | Description |
 |-------|-------------|
 | [Installation](installation) | Full installation options |
-| [Web App](app-types/web-app) | Routes, middleware, responses, templates |
-| [Native App](app-types/native-app) | CLI commands, signatures, input/output |
-| [Terminal App](app-types/term-app) | TUI prompts, styling, interactive workflows |
+| [Web App](platforms/webapp) | Routes, middleware, responses, templates |
+| [Native App](platforms/desktop) | CLI commands, signatures, input/output |
+| [Terminal App](platforms/terminal) | TUI prompts, styling, interactive workflows |
 
 ## API Reference
 

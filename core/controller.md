@@ -158,5 +158,5 @@ Creates `src/controllers/user_controller.rs` with a `Controller` implementation 
 - [Service](../core/service) — business logic layer
 - [Repository](repository) — data access layer
 - [Entity](entity) — business objects
-- [Web App](web-app) — routing, request/response
+- [Web App](../platforms/webapp) — routing, request/response
 - [FormRequest / Validation](validation) — request validation

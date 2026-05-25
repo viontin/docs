@@ -10,7 +10,7 @@
 | Category | Documents |
 |----------|-----------|
 | **Getting Started** | [getting-started](getting-started), [installation](installation), [philosophy](philosophy) |
-| **App Types** | [web-app](app-types/web-app), [term-app](app-types/term-app), [native-app](app-types/native-app) |
+| **Platforms** | [webapp](platforms/webapp), [terminal](platforms/terminal), [desktop](platforms/desktop), [cloud](platforms/cloud) |
 | **Core** | [app-boot](core/app-boot), [providers](core/providers), [config](core/config), [environment](core/environment), [error-handling](core/error-handling), [path](core/path), [support](core/support) |
 | **HTTP** | [http](http/http), [server](http/server), [async](http/async), [routing](http/routing), [middleware](http/middleware), [csrf](http/csrf), [websocket](http/websocket) |
 | **Data** | [database](data/database), [orm](data/orm), [model](data/model), [entity](data/entity), [repository](data/repository), [collection](data/collection), [pagination](data/pagination), [semver](data/semver) |
