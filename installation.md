@@ -20,7 +20,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ### From Source (Git)
 
 ```bash
-git clone https://github.com/viontin/viontin.git
+git clone https://github.com/viontin/viontin.git viontin
 cd viontin
 bash scripts/install.sh --release
 ```
