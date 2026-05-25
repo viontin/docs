@@ -107,7 +107,7 @@ viontin/
 | `viontin` | Meta-crate | `viontin-core`, `framework`, `tui`, `gems`, `macros`, `glob` | Unified facade: re-exports for end users, boot lifecycle, macros |
 | `framework` | Library | `viontin-core`, `serde_json`, `thiserror`, `glob`, `viontest` | Core platform: all implementations, runtime, patterns (Service, Controller, Repository) |
 | `viontin-tui` | Library | `framework`, `crossterm` (opt), `terminal_size`, `unicode-width` | Terminal toolkit: ANSI styling, interactive prompts, signature validator |
-| `viontin-cli` | Binary | `tui`, `framework`, `notify`, `regex` | CLI executable: 42 commands, project scanner |
+| `viontin-cli` | Binary | `tui`, `framework`, `notify`, `regex` | CLI executable: 45 commands, project scanner |
 | `gems` | Library | `framework`, `linkme`, `serde` (opt) | Plugin system: GemRegistry, WASM lifecycle |
 | `orm` | Library (optional) | (none — standalone) | ORM core: QueryBuilder, Schema, Migration, DatabaseType, NoSqlConnection |
 | `pg` | Library (optional) | `orm` | PostgreSQL driver |

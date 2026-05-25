@@ -97,7 +97,7 @@ viontin/
               ▼                         ▼                             ▼
    ┌──────────────────┐   ┌──────────────────────┐   ┌──────────────────┐
    │  viontin_framework│   │  viontin-cli          │   │  viontin-tui     │
-   │  (core library)   │   │  42 commands           │   │  Terminal UI     │
+   │  (core library)   │   │  45 commands           │   │  Terminal UI     │
    └──────────────────┘   └──────────────────────┘   └──────────────────┘
               │
    ┌──────────┼──────────┐
@@ -220,7 +220,7 @@ Each driver implements the core traits, allowing applications to switch database
 
 ## CLI Reference
 
-The `viontin` CLI provides 42 commands across these categories:
+The `viontin` CLI provides 45 commands across these categories:
 
 | Category | Commands |
 |----------|---------|

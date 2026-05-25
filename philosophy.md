@@ -59,7 +59,7 @@ viontin make:model       # model with migration, relationships
 viontin make:domain      # bounded context with port
 ```
 
-The 33 CLI commands exist because **scaffolding is a first-class feature**, not a plugin. Every `make:*` command produces production-viable code, not stubs.
+The 45 CLI commands exist because **scaffolding is a first-class feature**, not a plugin. Every `make:*` command produces production-viable code, not stubs.
 
 ### Content Embedding
 
@@ -270,7 +270,7 @@ println!("{}", p.report());  // db-query: 12.34ms
 
 ### Zero Cargo at Runtime
 
-The `viontin` CLI is a standalone binary — 42 commands, zero `cargo` invocations at runtime. No `cargo run`, no `cargo build` for `dev` mode. The CLI wraps cargo transparently for build commands, but the development server, scaffolding, inspection, and architecture checking all run without the Rust toolchain.
+The `viontin` CLI is a standalone binary — 45 commands, zero `cargo` invocations at runtime. No `cargo run`, no `cargo build` for `dev` mode. The CLI wraps cargo transparently for build commands, but the development server, scaffolding, inspection, and architecture checking all run without the Rust toolchain.
 
 ### Errors With Solutions
 
@@ -328,7 +328,7 @@ The framework is designed to track Rust's evolution. Edition 2024 is not a goal 
 | **Async model** | Synchronous (threads) | Async (tokio/async-std) |
 | **Maturity levels** | Explicit (0→3) | Implicit or absent |
 | **Arch enforcement** | Built-in (arch testing + domains) | External tools only |
-| **CLI** | 42 commands, standalone binary | Usually cargo subcommand |
+| **CLI** | 45 commands, standalone binary | Usually cargo subcommand |
 | **TUI** | First-class toolkit | None or external |
 | **Plugin system** | WASM-based Gems | Usually middleware only |
 

@@ -62,7 +62,7 @@ Viontin is a **cloud-native Rust framework** inspired by cloud-native platforms 
 | **Ecosystem** | Large (tokio/tower ecosystem) | Small |
 | **Design philosophy** | Modular, composable, async-native | Monolithic, conventional, sync-first |
 
-**Takeaway:** Axum excels in the Rust async ecosystem with its modular, tower-based middleware system and powerful extractors. Viontin prioritizes developer ergonomics with familiar patterns, a unified dependency, and support for non-HTTP app types (CLI, TUI). Axum is a great choice for async API services; Viontin is designed for full-stack applications where a single codebase serves web, CLI, and terminal interfaces.
+**Takeaway:** Axum excels in the Rust async ecosystem with its modular, tower-based middleware system and powerful extractors. Viontin prioritizes developer ergonomics with familiar patterns, a unified dependency, and support for non-HTTP app types (CLI, TUI). Axum is a great choice for async API services; Viontin is designed for cloud-native applications where a single codebase serves web, CLI, and terminal interfaces.
 
 ---
 
@@ -140,7 +140,7 @@ Viontin is a **cloud-native Rust framework** inspired by cloud-native platforms 
 
 Dioxus handles "what users see and interact with" — it renders UI across web, desktop, and mobile using a React-like component model. Viontin handles "what runs on the server" — HTTP routing, database access, authentication, background jobs, CLI tooling, and terminal interfaces.
 
-**Integration:** Dioxus and Viontin can work together in the same Rust codebase. Dioxus serves the frontend (via WASM or server-side rendering), while Viontin provides the backend API, authentication, database access, and CLI tooling. This gives you a full-stack Rust application with a familiar component model on the frontend and a batteries-included backend.
+**Integration:** Dioxus and Viontin can work together in the same Rust codebase. Dioxus serves the frontend (via WASM or server-side rendering), while Viontin provides the backend API, authentication, database access, and CLI tooling. This gives you a cloud-native Rust application with a familiar component model on the frontend and a batteries-included backend.
 
 **Takeaway:** If you are building a Rust application with a rich interactive UI, consider Dioxus for the frontend and Viontin for the backend. They complement rather than compete. Dioxus alone needs a backend framework for data persistence, auth, and server logic — Viontin fills that role. Viontin alone generates HTML or JSON on the server — Dioxus provides the interactive client-side layer.
 
@@ -285,7 +285,7 @@ Dioxus handles "what users see and interact with" — it renders UI across web, 
 | High-throughput HTTP API | **Actix-web**, **Axum** |
 | Full-stack web application | **Laravel**, **Rails**, **Django** |
 | Enterprise microservices | **Spring Boot**, **NestJS** |
-| Rust full-stack application | **Viontin** |
+| Rust cloud-native application | **Viontin** |
 | CLI + Web + TUI in one binary | **Viontin** |
 | Maximum performance / minimal resources | **Viontin**, **Actix-web** |
 | Rapid prototyping | **Rails**, **Laravel**, **Viontin** |
