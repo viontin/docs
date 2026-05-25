@@ -558,7 +558,7 @@ Integrate a template engine (e.g., `minijinja`) for rendering HTML emails with l
 | D-011 | Deployment documentation missing | 🟡 Major | Open |
 | m-001 | Missing doc comments on public APIs | 🟢 Minor | Open |
 | m-005 | Inconsistent naming conventions | 🟢 Minor | Open |
-| m-006 | License file exists but no third-party attribution | 🟢 Minor | Open |
+| m-006 | License file exists but no third-party attribution | 🟢 Minor | Partially Fixed |
 | m-007 | No error page rendering | 🟢 Minor | Open |
 | S-002 | Add debug toolbar for development | 🔵 Suggestion | Open |
 | S-003 | Project scaffolding (`viontin new --with`) | 🔵 Suggestion | Open |
