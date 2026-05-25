@@ -221,78 +221,17 @@ A module should fit on one screen (≈60 lines of logic). If a file exceeds this
 | Module has `#[cfg]` gated sections | Extract into separate files with `#[cfg]` per file |
 | Module is >200 lines | Audit for split opportunities |
 
-### Concrete Patterns (Refactored)
-
-#### encryption/ — Algorithm per file
-
-```
-encryption/
-├── mod.rs → Encrypter re-exports + hex module (~30 lines)
-├── xor.rs  → SimpleEncrypter (dev only, XOR) (~55 lines)
-└── aes.rs  → AesEncrypter (production, AES-256-GCM, cfg) (~60 lines)
-```
-
-#### filesystem/ — One operation category per file
-
-```
-filesystem/
-├── mod.rs  → module declarations, re-exports (~5 lines)
-├── file.rs → read, write, append, delete, exists, size, stem, extension (~55 lines)
-├── dir.rs  → ensure_dir, create_dir, remove_dir, list, copy, find_files (~80 lines)
-├── path.rs → normalize, relative, format_location (~30 lines)
-├── temp.rs → TempDir (auto-cleanup on drop) (~25 lines)
-└── info.rs → FileInfo, info(), hash() (~35 lines)
-```
-
-Each file is a single concern. No file exceeds 80 lines. The parent `mod.rs` only declares submodules and re-exports with `pub use`.
-
-#### ws/ — Protocol vs encoding vs handshake
-
-```
-ws/
-├── mod.rs     → Opcode, Message, WebSocketConfig, WebSocketHandler trait,
-│                WsRouter, WsServer, connection handler (~180 lines)
-├── frame.rs   → read_frame, encode_frame, message_to_frame,
-│                close payload encode/decode (~80 lines)
-├── sha1.rs    → hand-rolled SHA-1 implementation (~65 lines)
-└── base64.rs  → hand-rolled Base64 encoding (~20 lines)
-```
-
-#### server/ — Router vs TCP server
-
-```
-server/
-├── mod.rs     → Router, path matching, route params, static files,
-│                SPA fallback, MIME types (~180 lines)
-└── server.rs  → Server (TCP listener), graceful shutdown,
-│                connection handler, HTTP/1.1 parser (~110 lines)
-```
-
-#### mail/ — One transport per file
+### Example: mail/ — One transport per file
 
 ```
 mail/
-├── mod.rs       → Mailer trait, Mail facade, Envelope, Attachment, re-exports
-├── log.rs       → LogTransport (∼20 lines)
-├── array.rs     → ArrayTransport (∼30 lines)
-└── smtp.rs      → SmtpTransport (∼65 lines, behind #[cfg(feature = "smtp")])
+├── mod.rs   → Mailer trait, Mail facade, re-exports
+├── log.rs   → LogTransport
+├── array.rs → ArrayTransport
+└── smtp.rs  → SmtpTransport (behind feature flag)
 ```
 
-#### middleware/ — One concern per type
-
-```
-middleware/
-├── mod.rs           → Middleware trait, MiddlewareChain, Next, re-exports (∼65 lines)
-├── cors.rs          → CorsMiddleware (∼80 lines)
-├── panic.rs         → PanicRecovery (∼25 lines)
-├── health.rs        → healthz_handler, readyz_handler (∼15 lines)
-├── static_files.rs  → static_files_handler, mime_for (∼50 lines)
-├── timeout.rs       → set_connection_timeout (∼5 lines)
-├── request_id.rs    → RequestId (∼20 lines)
-└── rate_limit.rs    → RateLimitMiddleware (∼30 lines)
-```
-
-Each middleware file contains exactly one `struct` + `impl Middleware` + private helpers. The parent `mod.rs` declares submodules with `pub mod` and re-exports with `pub use`. No middleware file exceeds 80 lines.
+Each file has exactly one `struct` + `impl Trait`. Parent `mod.rs` only declares submodules and re-exports. This pattern applies to all large modules: identify distinct concerns and split each into its own file.
 
 ---
 
