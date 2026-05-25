@@ -223,6 +223,20 @@ A module should fit on one screen (≈60 lines of logic). If a file exceeds this
 
 ### Concrete Patterns (Refactored)
 
+#### filesystem/ — One operation category per file
+
+```
+filesystem/
+├── mod.rs  → module declarations, re-exports (~5 lines)
+├── file.rs → read, write, append, delete, exists, size, stem, extension (~55 lines)
+├── dir.rs  → ensure_dir, create_dir, remove_dir, list, copy, find_files (~80 lines)
+├── path.rs → normalize, relative, format_location (~30 lines)
+├── temp.rs → TempDir (auto-cleanup on drop) (~25 lines)
+└── info.rs → FileInfo, info(), hash() (~35 lines)
+```
+
+Each file is a single concern. No file exceeds 80 lines. The parent `mod.rs` only declares submodules and re-exports with `pub use`.
+
 #### ws/ — Protocol vs encoding vs handshake
 
 ```
