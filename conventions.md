@@ -223,6 +223,15 @@ A module should fit on one screen (≈60 lines of logic). If a file exceeds this
 
 ### Concrete Patterns (Refactored)
 
+#### encryption/ — Algorithm per file
+
+```
+encryption/
+├── mod.rs → Encrypter re-exports + hex module (~30 lines)
+├── xor.rs  → SimpleEncrypter (dev only, XOR) (~55 lines)
+└── aes.rs  → AesEncrypter (production, AES-256-GCM, cfg) (~60 lines)
+```
+
 #### filesystem/ — One operation category per file
 
 ```

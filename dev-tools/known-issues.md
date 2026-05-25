@@ -126,6 +126,29 @@ Only in-process drivers exist (`MemoryCache`, `FileCache`, `NullCache`). No dist
 
 ## 🟡 Major Issues
 
+### M-024: Oversized modules violate SoC convention (>200 lines)
+
+**Location:** Multiple crates  
+**Type:** Code quality
+
+The following modules exceed the SoC convention limit (>200 lines / >1 screen) and need splitting into submodules:
+
+| Module | Lines | Suggested Split |
+| `framework/src/encryption/mod.rs` | 203 | **RESOLVED** — split into `xor.rs` + `aes.rs` |
+| `framework/src/controllers/mod.rs` | 202 | `mod.rs` (Controller trait) + `default.rs` (DefaultController) |
+| `framework/src/rate_limit/mod.rs` | 222 | `mod.rs` (RateLimiter facade) + `token_bucket.rs` (TokenBucketLimiter) |
+| `framework/src/repositories/mod.rs` | 206 | `mod.rs` (Repository trait) + `default.rs` (DefaultRepository) |
+| `framework/src/domain/mod.rs` | 182 | `mod.rs` + submodules per DDD building block |
+| `framework/src/localization/mod.rs` | 235 | `mod.rs` (Translator trait) + `json.rs` (JsonTranslator) |
+| `framework/src/route/mod.rs` | 188 | `mod.rs` + `registry.rs` (RouteRegistry) |
+| `viontin-core/src/http.rs` | 363 | `mod.rs` (types) + `request.rs` + `response.rs` + `headers.rs` |
+| `viontin-core/src/error.rs` | 264 | `mod.rs` (InternalError) + `report.rs` (ErrorReport) |
+| `viontin-cli/boot/mod.rs` | 322 | `mod.rs` + `serve.rs` + `run.rs` |
+
+**Fix:** Split each module per SoC pattern — one file per struct/trait, keep `mod.rs` for re-exports only.
+
+---
+
 ### M-010: No structured/JSON logging
 
 **Location:** `products/framework/crates/framework/src/log/`  
@@ -527,6 +550,7 @@ Integrate a template engine (e.g., `minijinja`) for rendering HTML emails with l
 | M-021 | No model factories or database seeders | 🟡 Major | Open |
 | M-022 | No query logging/profiling middleware | 🟡 Major | Open |
 | M-023 | No Slack/Discord/Telegram notification channels | 🟡 Major | Open |
+| M-024 | Oversized modules violating SoC (>200 lines) | 🟡 Major | Open |
 | D-003 | `make:*` scaffolding does not update `mod.rs` | 🟡 Major | Open |
 | D-004 | `make:migration` command missing | 🟡 Major | Open |
 | D-006 | No seeder / factory system | 🟡 Major | Open |
