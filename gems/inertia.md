@@ -1,6 +1,6 @@
 # InertiaJS Gem
 
-**Crate:** `viontin-gem-inertia`  
+**Crate:** `inertia`  
 **Gem Name:** `inertia`  
 **Kind:** `Integration`
 
@@ -35,7 +35,7 @@ Browser                          Viontin
 
 ```toml
 [dependencies]
-viontin-gem-inertia = { path = "../../repos/gems/crates/viontin-gem-inertia" }
+inertia = { path = "../../products/gems/crates/inertia" }
 ```
 
 ### Client-side

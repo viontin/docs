@@ -18,10 +18,10 @@ The TUI toolkit provides building blocks for rich terminal applications — inte
 ```toml
 [dependencies]
 # All features (default)
-viontin-tui = { path = "../../repos/framework/crates/tui" }
+viontin-tui = { path = "../../products/framework/crates/tui" }
 
 # CLI-only (no prompts)
-viontin-tui = { path = "../../repos/framework/crates/tui", default-features = false }
+viontin-tui = { path = "../../products/framework/crates/tui", default-features = false }
 ```
 
 ---
@@ -345,7 +345,7 @@ outcome.is_empty();     // false
 
 ## Re-exports from Framework
 
-The TUI crate re-exports the following types from `viontin-framework::cli`:
+The TUI crate re-exports the following types from `framework::cli`:
 
 | Type | Description |
 |------|-------------|

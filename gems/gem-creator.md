@@ -8,7 +8,7 @@ This guide walks through creating a Viontin gem — a reusable plugin that exten
 
 ## Gem Structure
 
-A gem is a Rust crate under `repos/gems/crates/`:
+A gem is a Rust crate under `products/gems/crates/`:
 
 ```
 viontin-gem-example/
@@ -31,8 +31,8 @@ license = "MIT"
 description = "[EXPERIMENTAL] Example Viontin gem"
 
 [dependencies]
-viontin-framework = { path = "../../../framework/crates/framework" }
-viontin-gems = { path = "../viontin-gems" }
+framework = { path = "../../../framework/crates/framework" }
+gems = { path = "../gems" }
 ```
 
 ---
@@ -364,7 +364,7 @@ fn gem_binding_works() {
 
 ## Publishing
 
-1. Add your gem to the workspace in `repos/gems/Cargo.toml`
+1. Add your gem to the workspace in `products/gems/Cargo.toml`
 2. Tag a release
 3. Users add it as a path or git dependency:
 

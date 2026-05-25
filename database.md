@@ -4,9 +4,9 @@
 
 **Module:** `viontin_framework::db`
 
-The database module provides the foundation layer for all data access — connection abstractions, value types, and a lightweight SQL query builder. These are built-in types that do not require `viontin-orm`.
+The database module provides the foundation layer for all data access — connection abstractions, value types, and a lightweight SQL query builder. These are built-in types that do not require `orm`.
 
-> **No vendor lock-in:** The standalone `viontin-orm` crate is completely optional. Use the framework's built-in db types, or add `viontin-orm` separately with `features = ["orm"]` on the `viontin` meta-crate, or use any other ORM entirely.
+> **No vendor lock-in:** The standalone `orm` crate is completely optional. Use the framework's built-in db types, or add `orm` separately with `features = ["orm"]` on the `viontin` meta-crate, or use any other ORM entirely.
 
 ---
 
@@ -26,7 +26,7 @@ The database module provides the foundation layer for all data access — connec
 │   SqliteConnection / custom)         │
 └──────────────────────────────────────┘
 
-Optional: viontin-orm (standalone crate)
+Optional: orm (standalone crate)
   ┌──────────────────────────────────┐
   │  QueryBuilder (rich, Eloquent)   │
   │  Schema  Blueprint  Migration    │
@@ -311,7 +311,7 @@ fn transfer(conn: &dyn Connection, from: i64, to: i64, amount: i64) -> Result<()
 
 ## Driver Implementations
 
-The framework does not ship with built-in drivers. Driver crates implement `Connection` and `ConnectionPool` from `viontin-orm`. Each driver must also implement `database_type()` and `capabilities()` for feature discovery:
+The framework does not ship with built-in drivers. Driver crates implement `Connection` and `ConnectionPool` from `orm`. Each driver must also implement `database_type()` and `capabilities()` for feature discovery:
 
 ```rust
 fn database_type(&self) -> DatabaseType;      // Relational, Document, KeyValue, etc.
@@ -322,9 +322,9 @@ For NoSQL databases, implement the additional `NoSqlConnection` trait for get/se
 
 | Crate | Connection | ConnectionPool | Status |
 |-------|-----------|----------------|--------|
-| `viontin-orm-pg` | `PgConnection` | `PgPool` | **Stub** — returns `Err("Not implemented")` |
-| `viontin-orm-mysql` | `MySqlConnection` | `MySqlPool` | **Stub** — returns `Err("Not implemented")` |
-| `viontin-orm-sqlite` | `SqliteConnection` | `SqlitePool` | **Stub** — returns `Err("Not implemented")` |
+| `pg` | `PgConnection` | `PgPool` | **Stub** — returns `Err("Not implemented")` |
+| `mysql` | `MySqlConnection` | `MySqlPool` | **Stub** — returns `Err("Not implemented")` |
+| `sqlite` | `SqliteConnection` | `SqlitePool` | **Stub** — returns `Err("Not implemented")` |
 
 > All three driver crates are currently **stubs** with trait implementations that return errors. Actual database connectivity (via sqlx for PG/MySQL, rusqlite for SQLite) is planned.
 

@@ -1,7 +1,7 @@
 # Model
 
 **Module:** `viontin_framework::model`  
-**Crate:** `viontin-framework` (requires `orm` feature)  
+**Crate:** `framework` (requires `orm` feature)  
 **Trait:** `Model`
 
 **Model** is the recommended default pattern. It combines data (like `Entity`) with persistence (like `Repository`) into a single, convenient trait — similar to Laravel Eloquent's active record.

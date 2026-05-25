@@ -31,9 +31,9 @@
 |---------|-----------|-------------|
 | Async server | `async` | Tokio-based async HTTP server |
 | Domain-Driven Design | `domain` | DDD building blocks (Domain, AggregateRoot, Repository) |
-| Viontin ORM | `orm` | Integrate `viontin-orm` (standalone ORM crate) |
+| Viontin ORM | `orm` | Integrate `orm` (standalone ORM crate) |
 
-**No vendor lock-in:** The framework works without `viontin-orm`. Use it, or any other ORM, or none at all.
+**No vendor lock-in:** The framework works without `orm`. Use it, or any other ORM, or none at all.
 
 Viontin is a full-stack Rust application framework for building web services, CLI tools, terminal applications, and batch processing systems — all within a single, cohesive platform. It provides HTTP server, ORM, plugin system (Gems), background job processing, mail, notifications, caching, real-time TUI toolkit, architectural enforcement, and more.
 
@@ -43,7 +43,7 @@ Viontin is a full-stack Rust application framework for building web services, CL
 
 ```
 viontin/
-├── repos/
+├── products/
 │   ├── framework/          # Core framework monorepo
 │   │   └── crates/
 │   │       ├── viontin/     # Meta-crate: re-exports everything as `viontin`
@@ -52,14 +52,14 @@ viontin/
 │   │       └── tui/         # TUI toolkit: interactive prompts, ANSI styling
 │   ├── gems/               # Plugin system (Gems)
 │   │   └── crates/
-│   │       ├── viontin-gems/           # Gem registry & WASM plugin loader
-│   │       └── viontin-gem-tailwind/   # TailwindCSS build-time integration
+│   │       ├── gems/           # Gem registry & WASM plugin loader
+│   │       └── tailwind/   # TailwindCSS build-time integration
 │   └── orm/                # Multi-driver ORM
 │       └── crates/
-│           ├── viontin-orm/            # ORM core: Model, Schema, Migration, Relations
-│           ├── viontin-orm-pg/         # PostgreSQL driver
-│           ├── viontin-orm-mysql/      # MySQL driver
-│           └── viontin-orm-sqlite/     # SQLite driver
+│           ├── orm/            # ORM core: Model, Schema, Migration, Relations
+│           ├── pg/         # PostgreSQL driver
+│           ├── mysql/      # MySQL driver
+│           └── sqlite/     # SQLite driver
 ├── examples/
 │   ├── viontin-zero/       # Minimal starter project
 │   └── viontin-alpha/      # Feature demo with TailwindCSS + serde
@@ -196,10 +196,10 @@ Multi-driver design with a standalone core (no framework dependency):
 
 | Crate | Role |
 |-------|------|
-| `viontin-orm` | Core ORM: `QueryBuilder`, `Schema`, `Migration`, `Connection` traits, `Value`/`Row` types |
-| `viontin-orm-pg` | PostgreSQL driver (stub) |
-| `viontin-orm-mysql` | MySQL driver (stub) |
-| `viontin-orm-sqlite` | SQLite driver (stub) |
+| `orm` | Core ORM: `QueryBuilder`, `Schema`, `Migration`, `Connection` traits, `Value`/`Row` types |
+| `pg` | PostgreSQL driver (stub) |
+| `mysql` | MySQL driver (stub) |
+| `sqlite` | SQLite driver (stub) |
 
 Each driver implements the core traits, allowing applications to switch databases by changing a single configuration value. No active-record Model layer — use the query builder directly to avoid architecture lock-in.
 
@@ -244,7 +244,7 @@ The TUI crate provides building blocks for interactive terminal applications:
 | Example | Description |
 |---------|-------------|
 | `viontin-zero` | Minimal starter — bare `viontin` dependency, `Hello, world!` |
-| `viontin-alpha` | Feature demo — includes `viontin-gem-tailwind`, `serde`, `serde_json` |
+| `viontin-alpha` | Feature demo — includes `tailwind`, `serde`, `serde_json` |
 
 ---
 

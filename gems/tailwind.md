@@ -2,7 +2,7 @@
 
 > **Experimental Project** — This is an experimental project under active development. Not recommended for production use.
 
-**Crate:** `viontin-gem-tailwind`  
+**Crate:** `tailwind`  
 **Gem Name:** `tailwind`  
 **Kind:** `Theme`
 
@@ -28,7 +28,7 @@ before_build() hook
 
 ```toml
 [dependencies]
-viontin-gem-tailwind = { path = "../../repos/gems/crates/viontin-gem-tailwind" }
+tailwind = { path = "../../products/gems/crates/tailwind" }
 ```
 
 ---

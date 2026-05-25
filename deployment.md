@@ -94,7 +94,7 @@ services:
 # SQLite (default — file-based)
 DATABASE_URL=data/app.db
 
-# PostgreSQL (when using viontin-orm-pg)
+# PostgreSQL (when using pg)
 # DATABASE_URL=postgres://user:pass@host:5432/db
 ```
 

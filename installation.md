@@ -46,15 +46,15 @@ Add the meta-crate to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-viontin = { path = "path/to/repos/framework/crates/viontin" }
+viontin = { path = "path/to/products/framework/crates/viontin" }
 ```
 
 Or reference individual crates:
 
 ```toml
 [dependencies]
-viontin-framework = { path = "path/to/repos/framework/crates/framework" }
-viontin-tui = { path = "path/to/repos/framework/crates/tui", features = ["prompts"] }
+framework = { path = "path/to/products/framework/crates/framework" }
+viontin-tui = { path = "path/to/products/framework/crates/tui", features = ["prompts"] }
 ```
 
 ---

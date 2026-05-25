@@ -74,12 +74,12 @@ When an error occurs, the framework returns generic messages (`"Internal error"`
 
 ### D-012: Contracts and implementations are mixed in one crate
 
-**Location:** `repos/framework/crates/framework/`  
+**Location:** `products/framework/crates/framework/`  
 **Type:** Architecture
 
-`viontin-framework` currently bundles both **contracts** (traits, types) and **implementations** (HTTP server, middleware, caching) in a single crate. This forces consumers like `viontin-ui` (native UI framework) and `viontin-engine` (game engine) to pull the entire framework — including HTTP server, ORM integration, and middleware — when they only need basic types (config, logging, DI, Entity).
+`framework` currently bundles both **contracts** (traits, types) and **implementations** (HTTP server, middleware, caching) in a single crate. This forces consumers like `viontin-ui` (native UI framework) and `viontin-engine` (game engine) to pull the entire framework — including HTTP server, ORM integration, and middleware — when they only need basic types (config, logging, DI, Entity).
 
-Meanwhile, `viontin-orm` defines its own `Value`, `Row`, `Connection` types that are parallel to `framework::db`'s types. When the `orm` feature is enabled, `framework::db` re-exports from `viontin-orm` to unify them — but this creates a fragile type compatibility layer.
+Meanwhile, `orm` defines its own `Value`, `Row`, `Connection` types that are parallel to `framework::db`'s types. When the `orm` feature is enabled, `framework::db` re-exports from `orm` to unify them — but this creates a fragile type compatibility layer.
 
 **Proposed fix:** Extract all contracts and shared types into a new `viontin-core` crate with zero or minimal dependencies.
 
@@ -95,7 +95,7 @@ Meanwhile, `viontin-orm` defines its own `Value`, `Row`, `Connection` types that
 | **Error types** | `FrameworkError`, `Result`, `SourceLocation` |
 | **Utilities** | `Hasher`, `Encrypter` traits, url/str/hash helpers |
 
-**What stays in `viontin-framework`:**
+**What stays in `framework`:**
 
 | Category | Items |
 |----------|-------|
@@ -103,7 +103,7 @@ Meanwhile, `viontin-orm` defines its own `Value`, `Row`, `Connection` types that
 | **Patterns** | DefaultService, DefaultController |
 | **Tools** | CLI Kernel, Command trait, TUI toolkit, viontest, debug utilities, i18n, arch checker, WebSocket |
 
-**What stays in `viontin-orm`:**
+**What stays in `orm`:**
 
 | Category | Items |
 |----------|-------|
@@ -113,10 +113,10 @@ Meanwhile, `viontin-orm` defines its own `Value`, `Row`, `Connection` types that
 **New dependency graph:**
 
 ```
-viontin-core  ←── viontin-framework
+viontin-core  ←── framework
      ↑               ↑
      │               │
-     ├── viontin-orm │
+     ├── orm │
      └── viontin-ui     │
      └── viontin-engine
 ```
@@ -169,7 +169,7 @@ Requires Rust 1.85+ (stable February 2025). LTS Linux distributions may ship old
 
 ---
 
-### M-009: `serde` optional in viontin-orm but needed for JSON responses
+### M-009: `serde` optional in orm but needed for JSON responses
 
 If `serde` is not enabled, common use cases (returning query results as JSON) require manual serialization.
 

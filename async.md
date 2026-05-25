@@ -11,7 +11,7 @@ Tokio-based async HTTP server — alternative to the default synchronous thread-
 
 ```toml
 [dependencies]
-viontin-framework = { features = ["async"] }
+framework = { features = ["async"] }
 ```
 
 This enables the `server_async` module which uses `tokio` under the hood.

@@ -352,7 +352,7 @@ Viontin supports two approaches for building user interfaces, each suited to dif
 
 ```toml
 [dependencies]
-viontin-gem-inertia = { path = "../../repos/gems/crates/viontin-gem-inertia" }
+inertia = { path = "../../products/gems/crates/inertia" }
 ```
 
 ```rust
@@ -410,7 +410,7 @@ The webview gem wraps your Viontin HTTP server in a native desktop window using 
 
 ```toml
 [dependencies]
-viontin-gem-webview = { path = "../../repos/gems/crates/viontin-gem-webview" }
+webview = { path = "../../products/gems/crates/webview" }
 ```
 
 **System dependencies (Linux):**

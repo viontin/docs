@@ -38,7 +38,7 @@ boot()
 |---------|------|-------------|
 | Async server | `async` | Tokio-based async HTTP server |
 | Domain-Driven Design | `domain` | DDD building blocks (Domain, AggregateRoot, Repository) |
-| Viontin ORM | `orm` | Enable `viontin-orm` integration via `viontin_framework::orm` |
+| Viontin ORM | `orm` | Enable `orm` integration via `viontin_framework::orm` |
 
 ---
 
@@ -50,7 +50,7 @@ The platform is organized as a monorepo with four independent crate families:
 
 ```
 viontin/
-├── repos/
+├── products/
 │   ├── framework/         # Core platform (3 crates + meta-crate)
 │   ├── gems/              # Plugin system (WASM-based)
 │   └── orm/               # Multi-driver ORM
@@ -76,7 +76,7 @@ viontin/
            │                       │                       │
            ▼                       ▼                       ▼
 ┌──────────────────────┐ ┌──────────────────┐ ┌──────────────────────┐
-│  viontin-framework    │ │  viontin-tui      │ │  viontin-cli         │
+│  framework    │ │  viontin-tui      │ │  viontin-cli         │
 │  core library         │ │  terminal UI      │ │  binary (33 cmds)   │
 │  35 public modules    │ │  prompts/styling  │ │                      │
 └──────────────────────┘ └──────────────────┘ └──────────────────────┘
@@ -86,7 +86,7 @@ viontin/
            │                       │
            ▼                       ▼
 ┌──────────────────────┐ ┌──────────────────────┐
-│  viontin-gems         │ │  viontin-orm         │
+│  gems         │ │  orm         │
 │  plugin registry      │ │  ORM core + drivers  │
 │  WASM loader          │ │  pg/mysql/sqlite     │
 └──────────────────────┘ └──────────────────────┘
@@ -97,20 +97,20 @@ viontin/
 | Crate | Type | Dependencies | Purpose |
 |-------|------|-------------|---------|
 | `viontin` | Meta-crate | `framework`, `tui`, `gems`, `glob` | Unified facade: re-exports for end users, boot lifecycle, macros |
-| `viontin-framework` | Library | `serde`, `serde_json`, `thiserror`, `glob` | Core platform: all types, traits, implementations, runtime |
+| `framework` | Library | `serde`, `serde_json`, `thiserror`, `glob` | Core platform: all types, traits, implementations, runtime |
 | `viontin-tui` | Library | `framework`, `crossterm` (opt), `terminal_size`, `unicode-width` | Terminal toolkit: ANSI styling, interactive prompts, signature validator |
 | `viontin-cli` | Binary | `tui`, `framework`, `notify`, `regex` | CLI executable: 42 commands, project scanner |
-| `viontin-gems` | Library | `framework`, `linkme`, `serde` (opt) | Plugin system: GemRegistry, WASM lifecycle |
-| `viontin-orm` | Library (optional) | (none — standalone) | ORM core: QueryBuilder, Schema, Migration, DatabaseType, NoSqlConnection |
-| `viontin-orm-pg` | Library (optional) | `viontin-orm` | PostgreSQL driver |
-| `viontin-orm-mysql` | Library (optional) | `viontin-orm` | MySQL driver |
-| `viontin-orm-sqlite` | Library (optional) | `viontin-orm` | SQLite driver |
+| `gems` | Library | `framework`, `linkme`, `serde` (opt) | Plugin system: GemRegistry, WASM lifecycle |
+| `orm` | Library (optional) | (none — standalone) | ORM core: QueryBuilder, Schema, Migration, DatabaseType, NoSqlConnection |
+| `pg` | Library (optional) | `orm` | PostgreSQL driver |
+| `mysql` | Library (optional) | `orm` | MySQL driver |
+| `sqlite` | Library (optional) | `orm` | SQLite driver |
 
 ---
 
 ## 3. Three-Layer Platform Model
 
-The `viontin-framework` crate follows a strict three-layer design:
+The `framework` crate follows a strict three-layer design:
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
@@ -219,7 +219,7 @@ Executable infrastructure — servers, drivers, and runtime utilities:
 
 ## 4. Module Dependency Map
 
-Within `viontin-framework`, modules depend on each other as follows:
+Within `framework`, modules depend on each other as follows:
 
 ```
 app → config, env, log, queue, events
@@ -574,7 +574,7 @@ The `viontin-tui` crate layers interactive terminal capabilities on top of the f
 | `prompts` | Interactive: `text()`, `select()`, `confirm()`, `password()` | `crossterm` (optional, behind `prompts` feature) |
 | `validator` | CLI signature parsing, argument/option validation | Standalone (reimplements Laravel-style signature grammar) |
 
-The TUI crate re-exports `Kernel`, `Command`, `Input`, `Output`, and `ExitCode` from `viontin-framework::cli` — making it the primary entry point for CLI application authors.
+The TUI crate re-exports `Kernel`, `Command`, `Input`, `Output`, and `ExitCode` from `framework::cli` — making it the primary entry point for CLI application authors.
 
 ---
 
@@ -736,7 +736,7 @@ pub enum GemKind {
 
 ### 11.3 Example: TailwindCSS Gem
 
-The `viontin-gem-tailwind` crate implements `GemFacade` to:
+The `tailwind` crate implements `GemFacade` to:
 1. Read `tailwind.config.toml` from project root
 2. Invoke the Tailwind CLI via `tailwind-rs-core`
 3. Generate compiled CSS into the output directory
@@ -748,19 +748,19 @@ The `viontin-gem-tailwind` crate implements `GemFacade` to:
 
 ### 12.1 Optional ORM — No Lock-In
 
-Viontin Framework has **no built-in ORM dependency**. The framework provides lightweight db types (`framework::db`) and the standalone `viontin-orm` crate is completely optional.
+Viontin Framework has **no built-in ORM dependency**. The framework provides lightweight db types (`framework::db`) and the standalone `orm` crate is completely optional.
 
 **Three choices:**
 
 | Approach | How | Use Case |
 |----------|-----|----------|
 | **Built-in** | `framework::db` (always available) | Simple queries, no ORM needed |
-| **Standalone ORM** | `viontin-orm = { path = "..." }` | Full-featured query builder, standalone |
+| **Standalone ORM** | `orm = { path = "..." }` | Full-featured query builder, standalone |
 | **Via framework** | `features = ["orm"]` on `viontin` | Framework + ORM convenience |
 
 ```
 ┌──────────────────────────────────────┐
-│  viontin-orm (standalone, optional)  │
+│  orm (standalone, optional)  │
 │                                      │
 │  QueryBuilder (Laravel Eloquent-     │
 │    style, no model required)         │
@@ -769,13 +769,13 @@ Viontin Framework has **no built-in ORM dependency**. The framework provides lig
 │  NoSqlConnection  DriverRegistry     │
 ├──────────────────────────────────────┤
 │  Driver crates (pg, mysql, sqlite)   │
-│  (each depends on viontin-orm only)  │
+│  (each depends on orm only)  │
 └──────────────────────────────────────┘
 ```
 
 ### 12.2 Driver Selection
 
-Drivers implement `Connection` and `ConnectionPool` traits from `viontin-orm`. The ORM provides `QueryBuilder`, `Schema`, and `Migration` on top. Switching databases means changing the driver crate in `Cargo.toml` and updating the connection config. No model/active-record layer — use the query builder directly to avoid architecture lock-in.
+Drivers implement `Connection` and `ConnectionPool` traits from `orm`. The ORM provides `QueryBuilder`, `Schema`, and `Migration` on top. Switching databases means changing the driver crate in `Cargo.toml` and updating the connection config. No model/active-record layer — use the query builder directly to avoid architecture lock-in.
 
 ---
 
@@ -975,12 +975,12 @@ This single sequence:
 
 ```
 viontin (meta-crate)
-  ├── viontin-framework  (serde, serde_json, thiserror, glob)
-  ├── viontin-tui        (viontin-framework, crossterm, terminal_size, unicode-width)
-  ├── viontin-cli        (viontin-tui, viontin-framework, notify, regex)
-  ├── viontin-gems       (viontin-framework, linkme)
-  ├── [optional] viontin-orm     (standalone, no framework dependency)
-  ├── [optional] viontin-orm-pg  (viontin-orm only)
-  ├── [optional] viontin-orm-mysql (viontin-orm only)
-  └── [optional] viontin-orm-sqlite (viontin-orm only)
+  ├── framework  (serde, serde_json, thiserror, glob)
+  ├── viontin-tui        (framework, crossterm, terminal_size, unicode-width)
+  ├── viontin-cli        (viontin-tui, framework, notify, regex)
+  ├── gems       (framework, linkme)
+  ├── [optional] orm     (standalone, no framework dependency)
+  ├── [optional] pg  (orm only)
+  ├── [optional] mysql (orm only)
+  └── [optional] sqlite (orm only)
 ```

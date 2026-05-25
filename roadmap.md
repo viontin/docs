@@ -56,9 +56,9 @@ The nearest-term expansion. Viontin's HTTP server, middleware, config, and CLI a
 
 ### Pillar 2: BezelUI — Standalone Native UI Framework
 
-The webview gem (`viontin-gem-webview` with wry + tao) provides the foundation. The full UI framework will live in a **standalone project** named [`viontin-ui`](https://github.com/viontin/bezelui), separate from Viontin core.
+The webview gem (`webview` with wry + tao) provides the foundation. The full UI framework will live in a **standalone project** named [`viontin-ui`](https://github.com/viontin/bezelui), separate from Viontin core.
 
-Viontin UI will start where `viontin-gem-webview` leaves off — adding window management, declarative component DSL, and cross-platform rendering. It will consume Viontin's service layer (config, auth, logging, storage) via the `viontin` meta-crate, but will not depend on Viontin's HTTP server or ORM.
+Viontin UI will start where `webview` leaves off — adding window management, declarative component DSL, and cross-platform rendering. It will consume Viontin's service layer (config, auth, logging, storage) via the `viontin` meta-crate, but will not depend on Viontin's HTTP server or ORM.
 
 **Target audience:** Desktop application developers, indie developers.
 
@@ -133,7 +133,7 @@ Patterns common in cloud-native microservices, provided as optional middleware:
 
 | Stage | Capability |
 |-------|------------|
-| **L0 — Webview (done)** | `viontin-gem-webview` with wry + tao. `launch_with_ipc()` for Rust ↔ JS communication. |
+| **L0 — Webview (done)** | `webview` with wry + tao. `launch_with_ipc()` for Rust ↔ JS communication. |
 | **L1 — Window management** | Multiple windows, menu bar, system tray, dialog boxes, file picker, drag-and-drop |
 | **L2 — Declarative UI DSL** | Macro-based component tree (React-like or Flutter-like) that renders to native widgets via wry or direct GPU |
 | **L3 — Cross-platform framework** | Compete in the same space as Tauri. Desktop + mobile + web from a single codebase. |
@@ -162,7 +162,7 @@ The Entity pattern and event sourcing from the current domain module already ali
 │  github.com/viontin/framework                                │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
-│  viontin-gem-webview  ──→  viontin-ui (standalone)           │
+│  webview  ──→  viontin-ui (standalone)           │
 │  Webview + IPC bridge        Native UI framework             │
 │  (in viontin/gems repo)      github.com/viontin/ui   │
 │                                                              │

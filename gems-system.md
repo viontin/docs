@@ -12,8 +12,8 @@ Gems are plugins that extend Viontin at build time and runtime via Rust trait im
 
 | Gem | Package | Purpose |
 |-----|---------|---------|
-| **TailwindCSS** | `viontin-gem-tailwind` | Build-time CSS generation |
-| **Inertia** | `viontin-gem-inertia` | InertiaJS SPA bridge |
+| **TailwindCSS** | `tailwind` | Build-time CSS generation |
+| **Inertia** | `inertia` | InertiaJS SPA bridge |
 
 ---
 
@@ -23,8 +23,8 @@ Add the gem crate to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-viontin-gem-tailwind = { path = "../../repos/gems/crates/viontin-gem-tailwind" }
-viontin-gem-inertia = { path = "../../repos/gems/crates/viontin-gem-inertia" }
+tailwind = { path = "../../products/gems/crates/tailwind" }
+inertia = { path = "../../products/gems/crates/inertia" }
 ```
 
 ---

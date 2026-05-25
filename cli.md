@@ -192,10 +192,10 @@ Known viontin packages are resolved automatically when inside the monorepo:
 | Package | Path |
 |---------|------|
 | `viontin` | `crates/viontin` |
-| `viontin-framework` | `crates/framework` |
+| `framework` | `crates/framework` |
 | `viontin-tui` | `crates/tui` (with `prompts` feature) |
-| `viontin-orm` | `../orm/crates/viontin-orm` |
-| `viontin-gems` | `../gems/crates/viontin-gems` |
+| `orm` | `../orm/crates/orm` |
+| `gems` | `../gems/crates/gems` |
 
 Supports `viontin add all` to add every viontin package at once.
 

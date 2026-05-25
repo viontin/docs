@@ -2,7 +2,7 @@
 
 > **Experimental Project** — This is an experimental project under active development. Not recommended for production use.
 
-**Crate:** `viontin-gem-webview`  
+**Crate:** `webview`  
 **Gem Name:** `webview`  
 **Kind:** `Integration`
 
@@ -36,7 +36,7 @@ Desktop Window (tao)
 
 ```toml
 [dependencies]
-viontin-gem-webview = { path = "../../repos/gems/crates/viontin-gem-webview" }
+webview = { path = "../../products/gems/crates/webview" }
 ```
 
 ### System Dependencies

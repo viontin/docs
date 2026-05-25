@@ -32,7 +32,7 @@ Viontin's design philosophy is inspired by full-stack frameworks like Laravel an
 | **Scope** | HTTP framework only | Full-stack platform (HTTP, CLI, TUI, ORM, scheduler, etc.) |
 | **HTTP model** | Async, actor-based, tokio | Sync (thread-per-connection) or optional async |
 | **Routing** | Macro-based (`#[get("/")]`) and builder | Builder pattern (`boot().get("/", handler)`) |
-| **ORM** | None (bring your own) | Built-in ORM (`viontin-orm`) or BYO |
+| **ORM** | None (bring your own) | Built-in ORM (`orm`) or BYO |
 | **DI** | `web::Data` extractors | TypeId-based container with service providers |
 | **Middleware** | Actor-based `Transform` trait | Simple `Middleware` trait with chain |
 | **Ecosystem** | Large, many extensions, production-tested | Small, early stage |
@@ -171,7 +171,7 @@ Dioxus handles "what users see and interact with" — it renders UI across web, 
 | **Memory model** | Garbage collected | Ownership (no GC) |
 | **Boot** | Service providers + facades | Service providers + boot builder |
 | **CLI** | Artisan (100+ commands) | Viontin CLI (44 commands) |
-| **ORM** | Eloquent (active record) | `viontin-orm` (QueryBuilder + optional Model) |
+| **ORM** | Eloquent (active record) | `orm` (QueryBuilder + optional Model) |
 | **Templating** | Blade (server-rendered) | `html!()` macro (compile-time embed) |
 | **Queue** | Redis, database, SQS | SyncQueue (synchronous) |
 | **Events** | Pub/sub with listeners | Pub/sub with `EventDispatcher` |

@@ -20,7 +20,7 @@ The distance between an empty directory and a running application should be meas
 
 ```toml
 [dependencies]
-viontin = { path = "../../repos/framework/crates/viontin" }
+viontin = { path = "../../products/framework/crates/viontin" }
 ```
 
 A single crate import unlocks the entire platform: HTTP server, CLI, TUI, config, caching, auth, events, mail, queues, scheduling, validation, i18n, storage, debugging, architectural testing. No hunting for the right combination of half-dozen crates. No version mismatch. No "will these crates work together?"
@@ -161,7 +161,7 @@ Rules are code. They live in your test suite. They run in CI. They prevent drift
 
 ```toml
 # Switch from SQLite to PostgreSQL:
-# viontin-orm-sqlite → viontin-orm-pg
+# sqlite → pg
 # Change DATABASE_URL in .env
 # Done.
 ```

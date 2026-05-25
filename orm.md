@@ -1,9 +1,9 @@
 # ORM
 
-**Crate:** `viontin-orm`  
-**Standalone:** Zero dependencies — does not require `viontin-framework`
+**Crate:** `orm`  
+**Standalone:** Zero dependencies — does not require `framework`
 
-Multi-driver ORM with a Laravel Eloquent-inspired Query Builder. Pure data access — no patterns, no architecture decisions. Patterns like `Model`, `Entity`, and `Repository` live in `viontin-framework`.
+Multi-driver ORM with a Laravel Eloquent-inspired Query Builder. Pure data access — no patterns, no architecture decisions. Patterns like `Model`, `Entity`, and `Repository` live in `framework`.
 
 ---
 
@@ -11,7 +11,7 @@ Multi-driver ORM with a Laravel Eloquent-inspired Query Builder. Pure data acces
 
 ```
 ┌──────────────────────────────────────────────┐
-│  viontin-orm (standalone)                     │
+│  orm (standalone)                     │
 │                                               │
 │  QueryBuilder  Schema  Migration             │
 │                                               │
@@ -21,18 +21,18 @@ Multi-driver ORM with a Laravel Eloquent-inspired Query Builder. Pure data acces
 ├──────────────────────────────────────────────┤
 │  Driver implementations                      │
 │                                               │
-│  viontin-orm-pg      (PostgreSQL — stub)     │
-│  viontin-orm-mysql   (MySQL — stub)          │
-│  viontin-orm-sqlite  (SQLite — stub)         │
+│  pg      (PostgreSQL — stub)     │
+│  mysql   (MySQL — stub)          │
+│  sqlite  (SQLite — stub)         │
 └──────────────────────────────────────────────┘
 ```
 
 | Crate | Status | Purpose |
 |-------|--------|---------|
-| `viontin-orm` | Implemented | Standalone ORM: QueryBuilder, Schema, Migration, Connection traits, DatabaseType, DriverCapabilities, NoSqlConnection |
-| `viontin-orm-pg` | **Stub** | PostgreSQL driver (Relational, full SQL) — returns `Err("Not implemented")` |
-| `viontin-orm-mysql` | **Stub** | MySQL driver (Relational, full SQL) — returns `Err("Not implemented")` |
-| `viontin-orm-sqlite` | **Stub** | SQLite driver (Relational, full SQL) — returns `Err("Not implemented")` |
+| `orm` | Implemented | Standalone ORM: QueryBuilder, Schema, Migration, Connection traits, DatabaseType, DriverCapabilities, NoSqlConnection |
+| `pg` | **Stub** | PostgreSQL driver (Relational, full SQL) — returns `Err("Not implemented")` |
+| `mysql` | **Stub** | MySQL driver (Relational, full SQL) — returns `Err("Not implemented")` |
+| `sqlite` | **Stub** | SQLite driver (Relational, full SQL) — returns `Err("Not implemented")` |
 
 ---
 
@@ -197,7 +197,7 @@ DbConfig {
 
 ---
 
-> **Patterns (Model, Entity, Repository, Service, Controller)** live in `viontin-framework`, not in this crate. See [Model](model), [Entity](entity), [Repository](repository), [Service](service), and [Controller](controller) documentation.
+> **Patterns (Model, Entity, Repository, Service, Controller)** live in `framework`, not in this crate. See [Model](model), [Entity](entity), [Repository](repository), [Service](service), and [Controller](controller) documentation.
 
 ## Query Builder
 
@@ -568,13 +568,13 @@ migrator.rollback(vec![migration])?;
 
 ## Driver Crates
 
-Each driver implements `Connection` and `ConnectionPool` from `viontin-orm`:
+Each driver implements `Connection` and `ConnectionPool` from `orm`:
 
 | Crate | Connection | Type | Capabilities | Status |
 |-------|-----------|------|--------------|--------|
-| `viontin-orm-pg` | `PgConnection` | `Relational("pgsql")` | `full_sql()` | **Stub** |
-| `viontin-orm-mysql` | `MySqlConnection` | `Relational("mysql")` | `full_sql()` | **Stub** |
-| `viontin-orm-sqlite` | `SqliteConnection` | `Relational("sqlite")` | `full_sql()` | **Stub** |
+| `pg` | `PgConnection` | `Relational("pgsql")` | `full_sql()` | **Stub** |
+| `mysql` | `MySqlConnection` | `Relational("mysql")` | `full_sql()` | **Stub** |
+| `sqlite` | `SqliteConnection` | `Relational("sqlite")` | `full_sql()` | **Stub** |
 
 **NoSQL driver example** (not yet built — showing the pattern):
 
@@ -612,9 +612,9 @@ impl NoSqlConnection for MongoDriver {
 ```toml
 [dependencies]
 # Pick one driver:
-viontin-orm-pg = { path = "../../repos/orm/crates/viontin-orm-pg" }
-# viontin-orm-mysql = { path = "../../repos/orm/crates/viontin-orm-mysql" }
-# viontin-orm-sqlite = { path = "../../repos/orm/crates/viontin-orm-sqlite" }
+pg = { path = "../../products/orm/crates/pg" }
+# mysql = { path = "../../products/orm/crates/mysql" }
+# sqlite = { path = "../../products/orm/crates/sqlite" }
 ```
 
 ---
@@ -662,11 +662,11 @@ fn create_user(conn: &dyn viontin_orm::Connection, name: &str, email: &str) -> R
 
 ## Standalone Usage (Without Framework)
 
-Since `viontin-orm` has zero dependencies, it can be used in any Rust project:
+Since `orm` has zero dependencies, it can be used in any Rust project:
 
 ```toml
 [dependencies]
-viontin-orm = { path = "path/to/viontin/repos/orm/crates/viontin-orm" }
+orm = { path = "path/to/viontin/products/orm/crates/orm" }
 ```
 
 ```rust
