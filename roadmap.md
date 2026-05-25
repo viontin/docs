@@ -54,15 +54,19 @@ The nearest-term expansion. Viontin's HTTP server, middleware, config, and CLI a
 
 **Target audience:** Platform engineers, SREs, cloud backend developers, CLI tool authors.
 
-### Pillar 2: Native UI Framework
+### Pillar 2: BezelUI — Standalone Native UI Framework
 
-The webview gem (`viontin-gem-webview` with wry + tao) already provides a desktop window with an embedded HTTP server. The long-term vision is a declarative UI DSL that compiles to native widgets, competing with Tauri and Flutter in the Rust space.
+The webview gem (`viontin-gem-webview` with wry + tao) provides the foundation. The full UI framework will live in a **standalone project** named [`bezelui`](https://github.com/viontin/bezelui), separate from Viontin core.
+
+BezelUI will start where `viontin-gem-webview` leaves off — adding window management, declarative component DSL, and cross-platform rendering. It will consume Viontin's service layer (config, auth, logging, storage) via the `viontin` meta-crate, but will not depend on Viontin's HTTP server or ORM.
 
 **Target audience:** Desktop application developers, indie developers.
 
-### Pillar 3: Game Engine Foundation
+### Pillar 3: Viontin Engine — Standalone Game Engine Foundation
 
-The Entity pattern, event system, and service layer from Pillar 1 can serve as the backend for multiplayer game services. The longer-term vision includes an ECS pattern, `wgpu`-based rendering, audio, and networking — all integrated as optional gems.
+The Entity pattern, event system, and service layer from Pillar 1 can serve as the backend for multiplayer game services. The full game engine will live in a **standalone project** named [`viontin-engine`](https://github.com/viontin/engine), separate from Viontin core.
+
+Viontin Engine will include ECS pattern, `wgpu`-based rendering, audio, physics, and networking — all as optional modules. It will share design patterns with Viontin (Entity, events, DI) but will not depend on Viontin's HTTP infrastructure.
 
 **Target audience:** Indie game developers, Rust game dev community.
 
@@ -149,6 +153,30 @@ The Entity pattern and event sourcing from the current domain module already ali
 
 ---
 
+## Project Map
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  viontin (meta-crate)                                        │
+│  Full-stack web + cloud-native services + CLI toolkit       │
+│  github.com/viontin/framework                                │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  viontin-gem-webview  ──→  bezelui (standalone)              │
+│  Webview + IPC bridge        Native UI framework             │
+│  (in viontin/gems repo)      github.com/viontin/bezelui     │
+│                                                              │
+│  viontin (patterns)  ──→  viontin-engine (standalone)        │
+│  Entity, events, DI           ECS + rendering + physics      │
+│  (in viontin/framework)       github.com/viontin/engine     │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+All three projects share design philosophy and patterns. Bezelui and Viontin Engine consume Viontin as a dependency but are independent codebases.
+
+---
+
 ## Dependency Flow Between Pillars
 
 ```
@@ -180,7 +208,7 @@ Each pillar shares the foundation (meta-crate, DI, config, logging, events, gems
 |-----------|-----------|
 | **Single meta-crate** | One dependency unlocks the entire platform. Users opt into specific features via Cargo feature flags. |
 | **Optional patterns** | Entity, Model, Repository, Service, Controller — all optional. Use what you need, skip what you don't. |
-| **Gems for extensions** | UI, game engine, and exotic integrations live in gems — not in the core framework. |
+| **Gems for small extensions** | Small integrations (Tailwind, Inertia) live in gems within the monorepo. Large domains (UI framework, game engine) become standalone projects that consume Viontin as a dependency. |
 | **Zero proc macros (almost)** | Only `#[domain]` and `#[domain_event]` exist, both behind the `domain` feature flag. No derive macros. |
 | **Synchronous by default** | Sync code is simpler to write, debug, and teach. Async is available behind a feature flag for when it's needed. |
 | **No architecture lock-in** | Flat → MVC → RSC → Modular → DDD → Microservices — same codebase, no rewrites. |
