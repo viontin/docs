@@ -290,6 +290,6 @@ sudo systemctl restart my-app
 
 ## See Also
 
-- [Configuration](config) — Environment and JSON config
-- [Environment](environment) — `.env` loading and helpers
+- [Configuration](../core/config) — Environment and JSON config
+- [Environment](../core/environment) — `.env` loading and helpers
 - [Getting Started](getting-started) — First application

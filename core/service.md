@@ -152,5 +152,5 @@ Creates `src/services/user_service.rs` with a `Service` implementation template.
 ## See Also
 
 - [Repository](repository) — data access layer
-- [Controller](controller) — HTTP handlers using services
+- [Controller](../core/controller) — HTTP handlers using services
 - [Entity](entity) — the business objects

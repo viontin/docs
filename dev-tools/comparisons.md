@@ -332,5 +332,5 @@ If you are building a Rust application and value developer experience, conventio
 ## See Also
 
 - [Philosophy](philosophy) — Viontin's design principles
-- [Architecture](architecture) — System design
-- [Architecture Patterns](architecture-patterns) — RSC, MVC, DDD, Microservices
+- [Architecture](../architecture/architecture) — System design
+- [Architecture Patterns](../architecture/architecture-patterns) — RSC, MVC, DDD, Microservices

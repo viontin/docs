@@ -86,4 +86,4 @@ app.run();
 let dispatcher = app.container.resolve::<EventDispatcher>();
 ```
 
-See [Listeners](listeners) for defining listeners and subscribers.
+See [Listeners](../messaging/listeners) for defining listeners and subscribers.

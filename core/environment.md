@@ -90,7 +90,7 @@ Environment variables can be referenced in JSON config files:
 }
 ```
 
-See [Configuration](config) for details.
+See [Configuration](../core/config) for details.
 
 ---
 

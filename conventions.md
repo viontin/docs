@@ -154,7 +154,7 @@ Every `unsafe` block MUST have a `// SAFETY:` comment explaining:
 
 ### Audit
 
-All `unsafe` blocks are tracked in [known-issues](known-issues) under `C-015`. New unsafe code requires maintainer review.
+All `unsafe` blocks are tracked in [known-issues](dev-tools/known-issues) under `C-015`. New unsafe code requires maintainer review.
 
 ---
 

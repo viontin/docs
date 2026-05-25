@@ -5,7 +5,7 @@
 
 **Module:** `viontin_framework::testing` (re-exported from `viontest`)
 
-Testing utilities including fluent expectations, describe/test organization, architecture rule enforcement, and a TUI test runner — all powered by [viontest](viontest) (standalone crate, zero dependencies).
+Testing utilities including fluent expectations, describe/test organization, architecture rule enforcement, and a TUI test runner — all powered by [viontest](../standalone/viontest) (standalone crate, zero dependencies).
 
 ---
 

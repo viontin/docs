@@ -437,10 +437,10 @@ Viontin's `make:*` commands scaffold code at any stage. The framework does not e
 
 ## See Also
 
-- [Entity](entity) — Business data containers
-- [Repository](repository) — Data access abstraction
-- [Service](service) — Business logic layer
-- [Controller](controller) — HTTP handlers with DI
-- [Web App](web-app) — HTTP routing, controllers, responses
-- [CLI](cli) — All `make:*` scaffolding commands
+- [Entity](../data/entity) — Business data containers
+- [Repository](../data/repository) — Data access abstraction
+- [Service](../core/service) — Business logic layer
+- [Controller](../core/controller) — HTTP handlers with DI
+- [Web App](../app-types/web-app) — HTTP routing, controllers, responses
+- [CLI](../dev-tools/cli) — All `make:*` scaffolding commands
 - [Getting Started](getting-started) — Build your first app

@@ -163,6 +163,6 @@ Request → FormRequest::authorize()  → 403 if denied
 
 ## See Also
 
-- [Entity](entity) — entity-level validation via `Entity::validate()`
-- [Controller](controller) — using FormRequest in controllers
-- [Web App](web-app) — request and response types
+- [Entity](../data/entity) — entity-level validation via `Entity::validate()`
+- [Controller](../core/controller) — using FormRequest in controllers
+- [Web App](../app-types/web-app) — request and response types

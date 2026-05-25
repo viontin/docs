@@ -10,21 +10,20 @@
 | Category | Documents |
 |----------|-----------|
 | **Getting Started** | [getting-started](getting-started), [installation](installation), [philosophy](philosophy) |
-| **Architecture** | [architecture](architecture), [architecture-patterns](architecture-patterns), [domain-driven](domain-driven) |
-| **App Types** | [web-app](web-app), [term-app](term-app), [native-app](native-app) |
-| **Core** | [app-boot](app-boot), [providers](providers), [config](config), [environment](environment), [error-handling](error-handling), [path](path), [support](support) |
-| **HTTP** | [http](http), [server](server), [async](async), [routing](routing), [middleware](middleware), [csrf](csrf), [websocket](websocket) |
-| **Data** | [database](database), [orm](orm), [model](model), [entity](entity), [repository](repository), [collection](collection), [pagination](pagination), [semver](semver) |
-| **Security** | [auth](auth), [hashing](hashing), [encryption](encryption), [session](session) |
-| **Messaging** | [events](events), [listeners](listeners), [queue](queue), [mail](mail), [notification](notification), [schedule](schedule) |
-| **Performance** | [cache](cache), [rate-limit](rate-limit) |
-| **i18n** | [localization](localization) |
-| **Architecture** | [architecture](architecture), [architecture-patterns](architecture-patterns), [domain-driven](domain-driven), [service](service), [controller](controller) |
-| **Validation** | [validation](validation) |
-| **Files** | [filesystem](filesystem), [storage](storage) |
-| **Dev Tools** | [logging](logging), [debugging](debugging), [testing](testing), [cli](cli), [tui](tui), [deployment](deployment), [roadmap](roadmap), [known-issues](known-issues), [comparisons](comparisons) |
-| **Extensions** | [gems-system](gems-system), [gems/inertia](gems/inertia), [gems/tailwind](gems/tailwind), [gems/gem-creator](gems/gem-creator) |
-| **Standalone** | [viontest](viontest) |
+| **App Types** | [web-app](app-types/web-app), [term-app](app-types/term-app), [native-app](app-types/native-app) |
+| **Core** | [app-boot](core/app-boot), [providers](core/providers), [config](core/config), [environment](core/environment), [error-handling](core/error-handling), [path](core/path), [support](core/support) |
+| **HTTP** | [http](http/http), [server](http/server), [async](http/async), [routing](http/routing), [middleware](http/middleware), [csrf](http/csrf), [websocket](http/websocket) |
+| **Data** | [database](data/database), [orm](data/orm), [model](data/model), [entity](data/entity), [repository](data/repository), [collection](data/collection), [pagination](data/pagination), [semver](data/semver) |
+| **Security** | [auth](security/auth), [hashing](security/hashing), [encryption](security/encryption), [session](security/session) |
+| **Messaging** | [events](messaging/events), [listeners](messaging/listeners), [queue](messaging/queue), [mail](messaging/mail), [notification](messaging/notification), [schedule](messaging/schedule) |
+| **Performance** | [cache](performance/cache), [rate-limit](performance/rate-limit) |
+| **i18n** | [localization](i18n/localization) |
+| **Architecture** | [architecture](architecture/architecture), [architecture-patterns](architecture/architecture-patterns), [domain-driven](architecture/domain-driven), [service](core/service), [controller](core/controller) |
+| **Validation** | [validation](validation/validation) |
+| **Files** | [filesystem](files/filesystem), [storage](files/storage) |
+| **Dev Tools** | [logging](dev-tools/logging), [debugging](dev-tools/debugging), [testing](dev-tools/testing), [cli](dev-tools/cli), [tui](dev-tools/tui), [deployment](dev-tools/deployment), [roadmap](dev-tools/roadmap), [known-issues](dev-tools/known-issues), [comparisons](dev-tools/comparisons) |
+| **Extensions** | [gems-system](extensions/gems-system), [gems/inertia](gems/inertia), [gems/tailwind](gems/tailwind), [gems/gem-creator](gems/gem-creator) |
+| **Standalone** | [viontest](standalone/viontest) |
 
 ### Feature Flags
 
@@ -282,7 +281,7 @@ viontin dev
 
 ## Known Issues
 
-See [known-issues](known-issues) for a comprehensive list of bugs, limitations, and technical debt.
+See [known-issues](dev-tools/known-issues) for a comprehensive list of bugs, limitations, and technical debt.
 
 ## License
 

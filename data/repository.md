@@ -179,6 +179,6 @@ Creates `src/repositories/user_repository.rs` with `Repository` implementation t
 
 ## See Also
 
-- [Entity](entity) — the data objects repositories work with
-- [Service](service) — business logic layer on top of repositories
-- [ORM](orm) — Query Builder and connection types
+- [Entity](../data/entity) — the data objects repositories work with
+- [Service](../core/service) — business logic layer on top of repositories
+- [ORM](../data/orm) — Query Builder and connection types

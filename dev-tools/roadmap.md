@@ -241,7 +241,7 @@ Each directional goal is considered "ready" when:
 
 ## See Also
 
-- [Architecture](architecture) — Current system design
-- [Known Issues](known-issues) — What needs to be fixed before any direction can advance
+- [Architecture](../architecture/architecture) — Current system design
+- [Known Issues](../dev-tools/known-issues) — What needs to be fixed before any direction can advance
 - [Philosophy](philosophy) — Design principles that guide all directions
-- [Comparisons](comparisons) — How Viontin relates to other frameworks and tools
+- [Comparisons](../dev-tools/comparisons) — How Viontin relates to other frameworks and tools

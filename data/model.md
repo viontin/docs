@@ -188,6 +188,6 @@ Creates `src/models/user.rs` with a `Model` implementation.
 
 ## See Also
 
-- [Entity](entity) — Data-only trait (for clean architecture)
-- [Repository](repository) — Persistence-only trait (for clean architecture)
-- [ORM](orm) — Query Builder and data types
+- [Entity](../data/entity) — Data-only trait (for clean architecture)
+- [Repository](../data/repository) — Persistence-only trait (for clean architecture)
+- [ORM](../data/orm) — Query Builder and data types

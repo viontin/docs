@@ -93,7 +93,7 @@ pub trait Hasher: Debug + Send + Sync {
 }
 ```
 
-See [Hashing](hashing) for details.
+See [Hashing](../security/hashing) for details.
 
 ---
 
@@ -108,7 +108,7 @@ pub trait Encrypter: Debug + Send + Sync {
 }
 ```
 
-See [Encryption](encryption) for details.
+See [Encryption](../security/encryption) for details.
 
 ---
 

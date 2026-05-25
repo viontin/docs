@@ -82,6 +82,6 @@ impl Entity for User {
 
 ## See Also
 
-- [Model](model) — Recommended default (Entity + persistence combined)
-- [Repository](repository) — Data access abstraction (for clean architecture)
-- [ORM](orm) — Query Builder and data types
+- [Model](../data/model) — Recommended default (Entity + persistence combined)
+- [Repository](../data/repository) — Data access abstraction (for clean architecture)
+- [ORM](../data/orm) — Query Builder and data types

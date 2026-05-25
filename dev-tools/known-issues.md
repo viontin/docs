@@ -578,4 +578,4 @@ Issues are listed in descending severity order. Within each severity level, roug
 
 - [README](README) — Project overview
 - [Getting Started](getting-started) — Quick start guide
-- [Architecture](architecture) — System design
+- [Architecture](../architecture/architecture) — System design

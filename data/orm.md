@@ -198,7 +198,7 @@ DbConfig {
 
 ---
 
-> **Patterns (Model, Entity, Repository, Service, Controller)** live in `framework`, not in this crate. See [Model](model), [Entity](entity), [Repository](repository), [Service](service), and [Controller](controller) documentation.
+> **Patterns (Model, Entity, Repository, Service, Controller)** live in `framework`, not in this crate. See [Model](../data/model), [Entity](../data/entity), [Repository](../data/repository), [Service](../core/service), and [Controller](../core/controller) documentation.
 
 ## Query Builder
 
