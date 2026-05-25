@@ -17,46 +17,61 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 ## Method 1: Install the CLI (Recommended)
 
+### From Source (Git)
+
 ```bash
-cargo install viontin
+git clone https://github.com/viontin/viontin.git
+cd viontin
+bash scripts/install.sh --release
 ```
 
-This installs the `viontin` binary — 45 commands, zero `cargo` dependency at runtime. After installation:
+After installation:
 
 ```bash
 viontin --help
 ```
 
-### From Local Build
+### Install Script Options
 
-```bash
-git clone <repo-url> viontin
-cd viontin
-bash scripts/install.sh
-```
-
-Options:
-- `--path ./cli` — install from a custom path
-- `--release` — install in release mode
+| Flag | Description |
+|------|-------------|
+| `--path ./cli` | Install from a custom path |
+| `--release` | Install in release mode |
 
 ---
 
 ## Method 2: Add as a Dependency
 
-Add the meta-crate to your `Cargo.toml`:
+Viontin is distributed via **GitHub**, not crates.io. This allows flexible licensing for the future.
+
+### From Git (recommended for users)
 
 ```toml
 [dependencies]
-viontin = { path = "path/to/products/viontin/crates/viontin" }
+viontin = { git = "https://github.com/viontin/viontin" }
 ```
 
-Or reference individual crates:
+With a specific version tag:
 
 ```toml
 [dependencies]
-viontin-core = { path = "path/to/products/viontin/crates/core" }
-framework = { path = "path/to/products/framework/crates/framework" }
-viontin-tui = { path = "path/to/products/tui", features = ["prompts"] }
+viontin = { git = "https://github.com/viontin/viontin", tag = "v0.1.0" }
+```
+
+### From Local Path (development within the monorepo)
+
+```toml
+[dependencies]
+viontin = { path = "products/viontin/crates/viontin" }
+```
+
+Or individual crates:
+
+```toml
+[dependencies]
+viontin-framework = { git = "https://github.com/viontin/framework" }
+viontin-tui = { git = "https://github.com/viontin/tui", features = ["prompts"] }
+viontin-orm = { git = "https://github.com/viontin/orm" }
 ```
 
 ---
@@ -64,6 +79,9 @@ viontin-tui = { path = "path/to/products/tui", features = ["prompts"] }
 ## Method 3: Start from an Example
 
 ```bash
+# Clone the examples repo
+git clone https://github.com/viontin/examples.git
+
 # Minimal starter
 cp -r examples/viontin-zero my-app
 

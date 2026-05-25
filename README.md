@@ -273,7 +273,10 @@ The TUI crate provides building blocks for interactive terminal applications:
 ## Quick Start
 
 ```bash
-cargo install viontin
+git clone https://github.com/viontin/viontin.git
+cd viontin
+bash scripts/install.sh --release
+
 viontin new my-app
 cd my-app
 viontin dev
