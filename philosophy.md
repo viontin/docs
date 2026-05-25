@@ -65,14 +65,25 @@ The 45 CLI commands exist because **scaffolding is a first-class feature**, not 
 ### Content Embedding
 
 ```rust
-use viontin::{html, md, js, ts};
+use viontin::{html, md, include_html, include_md, include_js};
 
-let page = html!("templates/index.html");   // compile-time
-let docs = md!("docs/guide.md");             // compile-time
-let script = js!("assets/app.js");           // compile-time
+// Inline templates with variable interpolation
+let page = html!("<h1>{{title}}</h1>")
+    .with("title", "Dashboard")
+    .render();
+
+// Markdown with template variables
+let docs = md!("# {{heading}}")
+    .with("heading", "Guide")
+    .render();
+
+// File embedding (compile-time, zero I/O at runtime)
+let page  = include_html!("templates/index.html");
+let doc   = include_md!("docs/guide.md");
+let script = include_js!("assets/app.js");
 ```
 
-Assets are embedded at compile time — zero file I/O at runtime, zero configuration. The macros are simple `include_str!` wrappers today, extensible for minification or transpilation tomorrow.
+Assets are embedded at compile time — zero file I/O at runtime, zero configuration. Inline templates support `{{var}}` substitution and `{{cond ? "a" : "b"}}` conditionals via chain methods.
 
 ---
 

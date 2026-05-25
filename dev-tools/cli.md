@@ -404,7 +404,7 @@ make:view {name} {--force}
 
 Scaffolds `src/views/<snake>.html` with a basic HTML template.
 
-Views are HTML templates embeddable at compile time via `viontin::html!("views/<snake>.html")`. Part of the Model-View-Controller (MVC) pattern.
+Views are HTML templates embeddable at compile time via `viontin::include_html!("views/<snake>.html")`. Part of the Model-View-Controller (MVC) pattern.
 
 ---
 

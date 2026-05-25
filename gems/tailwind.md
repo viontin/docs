@@ -158,7 +158,7 @@ fn main() {
     boot()
         .gem(Tailwind::load())
         .get("/", |_| {
-            Response::html(html!("templates/index.html"))
+            Response::html(include_html!("templates/index.html"))
         })
         .serve("127.0.0.1:3000");
 }

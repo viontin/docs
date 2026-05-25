@@ -153,9 +153,9 @@ StatusCode::SERVER_ERROR      // 500
 use viontin::{html, md, js, ts};
 
 // Embed at compile time
-let page = html!("pages/index.html");
-let doc  = md!("docs/guide.md");
-let script = js!("assets/app.js");
+let page = include_html!("pages/index.html");
+let doc  = include_md!("docs/guide.md");
+let script = include_js!("assets/app.js");
 ```
 
 ### Serve Static Files

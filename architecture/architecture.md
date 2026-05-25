@@ -866,7 +866,7 @@ fn main() {
         .provider(MyDatabaseProvider)      // Infrastructure: register provider
         .command(MyCustomCommand)          // Infrastructure: register CLI command
         .gem(Tailwind::load())             // Infrastructure: register plugin
-        .get("/", |_req| Response::html(html!("pages/index.html")))
+        .get("/", |_req| Response::html(include_html!("pages/index.html")))
         .post("/submit", submit_handler)
         .ws("/chat", ChatHandler)
         .serve("127.0.0.1:3000");

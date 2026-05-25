@@ -387,9 +387,9 @@ make:controller {name} {--force} {--resource} {--type=default}
 All content embedding macros follow the same pattern — filename without extension:
 
 ```rust
-html!("pages/index.html")    // compile-time embedded HTML
-md!("docs/guide.md")         // compile-time embedded Markdown
-js!("assets/app.js")         // compile-time embedded JavaScript
+include_html!("pages/index.html")    // compile-time embedded HTML
+include_md!("docs/guide.md")         // compile-time embedded Markdown
+include_js!("assets/app.js")         // compile-time embedded JavaScript
 ```
 
 ### Testing Convention

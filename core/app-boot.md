@@ -290,7 +290,7 @@ fn main() {
         .withMiddlewares(vec![
             Box::new(LoggerMiddleware),
         ])
-        .get("/", |_| Response::html(html!("pages/home.html")))
+        .get("/", |_| Response::html(include_html!("pages/home.html")))
         .get("/users/:id", show_user)
         .ws("/chat", ChatHandler)
         .serve("127.0.0.1:3000");

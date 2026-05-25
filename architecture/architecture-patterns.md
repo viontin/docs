@@ -194,7 +194,7 @@ pub fn index(_req: Request) -> Response {
         User { id: 1, name: "Alice".into(), email: "alice@test.com".into() },
     ];
     // Embed view at compile time, inject data
-    let html = html!("views/user_index.html")
+    let html = include_html!("views/user_index.html")
         .replace("{{users}}", &serde_json::to_string(&users).unwrap_or_default());
     Response::html(&html)
 }
